@@ -21,6 +21,7 @@ export interface AddressInput {
 export interface SavedAddress extends AddressInput {
   id:        number;
   userId:    number;
+  isDefault: boolean;
   createdAt: string;
 }
 
@@ -40,4 +41,33 @@ export async function getAddresses(): Promise<SavedAddress[]> {
   const json = await res.json();
   if (!res.ok) throw new Error(json.message ?? 'Failed to fetch addresses');
   return json.data as SavedAddress[];
+}
+
+export async function updateAddress(id: number, data: Partial<AddressInput>): Promise<SavedAddress> {
+  const res  = await fetch(`${API_URL}/address/${id}`, {
+    method:  'PATCH',
+    headers: authHeaders(),
+    body:    JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message ?? 'Failed to update address');
+  return json.data as SavedAddress;
+}
+
+export async function deleteAddress(id: number): Promise<void> {
+  const res  = await fetch(`${API_URL}/address/${id}`, {
+    method:  'DELETE',
+    headers: authHeaders(),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message ?? 'Failed to delete address');
+}
+
+export async function setDefaultAddress(id: number): Promise<void> {
+  const res  = await fetch(`${API_URL}/address/${id}/default`, {
+    method:  'PATCH',
+    headers: authHeaders(),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message ?? 'Failed to set default address');
 }

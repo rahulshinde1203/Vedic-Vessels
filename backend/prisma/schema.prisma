@@ -90,6 +90,7 @@ model Address {
   city      String
   state     String
   pincode   String
+  isDefault Boolean  @default(false) @map("is_default")
   createdAt DateTime @default(now())
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -98,9 +98,20 @@ export default function Navbar() {
               {/* Auth */}
               {authUser ? (
                 <div className="flex items-center gap-2">
-                  <span className="hidden md:block text-sm font-semibold text-gray-700">
-                    {authUser.phone}
-                  </span>
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-brand-gold transition-colors duration-200"
+                    aria-label="My Profile"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-brand-gold/15 border border-brand-gold/30 flex items-center justify-center shrink-0">
+                      <span className="text-brand-gold text-xs font-bold leading-none">
+                        {authUser.phone.charAt(authUser.phone.length - 1)}
+                      </span>
+                    </div>
+                    <span className="hidden md:block text-sm font-medium text-gray-700 max-w-25 truncate">
+                      My Account
+                    </span>
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="text-xs font-semibold text-gray-500 border border-gray-300 hover:border-red-400 hover:text-red-500 px-3 py-1.5 rounded-full transition-all duration-200"
