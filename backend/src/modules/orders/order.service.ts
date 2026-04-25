@@ -1,6 +1,8 @@
 import prisma from '../../common/lib/prisma';
 import type { CreateOrderBody } from './order.types';
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
 function makeError(message: string, statusCode: number): Error {
   const err = new Error(message);
   (err as any).statusCode = statusCode;
@@ -96,4 +98,62 @@ export async function createOrder(userId: number, body: CreateOrderBody) {
   });
 
   return order;
+}
+
+export async function getMyOrders(userId: number) {
+  const orders = await prisma.order.findMany({
+    where:   { userId },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      orderItems: {
+        include: { product: { select: { id: true, name: true, imageUrl: true } } },
+      },
+    },
+  });
+  return orders.map((o) => ({
+    id:              o.id,
+    status:          o.status,
+    totalAmount:     Number(o.totalAmount),
+    trackingId:      o.trackingId,
+    courierName:     o.courierName,
+    trackingUrl:     o.trackingUrl,
+    createdAt:       o.createdAt,
+    deliveryAddress: o.deliveryAddress,
+    orderItems:      o.orderItems.map((i) => ({
+      id:       i.id,
+      quantity: i.quantity,
+      price:    Number(i.price),
+      product:  i.product,
+    })),
+  }));
+}
+
+export async function getMyOrderById(userId: number, orderId: number) {
+  const order = await prisma.order.findFirst({
+    where:   { id: orderId, userId },
+    include: {
+      orderItems: {
+        include: { product: { select: { id: true, name: true, imageUrl: true, images: true } } },
+      },
+    },
+  });
+  if (!order) throw makeError('Order not found', 404);
+
+  return {
+    id:              order.id,
+    status:          order.status,
+    totalAmount:     Number(order.totalAmount),
+    deliveryAddress: order.deliveryAddress,
+    trackingId:      order.trackingId,
+    courierName:     order.courierName,
+    trackingUrl:     order.trackingUrl,
+    createdAt:       order.createdAt,
+    updatedAt:       order.updatedAt,
+    orderItems:      order.orderItems.map((i) => ({
+      id:       i.id,
+      quantity: i.quantity,
+      price:    Number(i.price),
+      product:  { ...i.product, images: Array.isArray(i.product.images) ? i.product.images as string[] : [] },
+    })),
+  };
 }

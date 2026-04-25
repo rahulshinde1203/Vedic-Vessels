@@ -1,5 +1,28 @@
 import type { CartItem } from '@/types';
 import { useAuthStore } from '@/store/auth.store';
+import { userApiFetch } from '@/lib/api';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface OrderItem {
+  id:       number;
+  quantity: number;
+  price:    number;
+  product:  { id: number; name: string; imageUrl: string | null; images?: string[] };
+}
+
+export interface MyOrder {
+  id:              number;
+  status:          'PENDING' | 'SHIPPED' | 'DELIVERED';
+  totalAmount:     number;
+  trackingId:      string | null;
+  courierName:     string | null;
+  trackingUrl:     string | null;
+  deliveryAddress: string | null;
+  createdAt:       string;
+  updatedAt:       string;
+  orderItems:      OrderItem[];
+}
 
 export interface OrderResult {
   id:     number;
@@ -35,3 +58,9 @@ export async function createOrder(cartItems: CartItem[]): Promise<OrderResult> {
   }
   return json.data as OrderResult;
 }
+
+export const fetchMyOrders = (): Promise<MyOrder[]> =>
+  userApiFetch<MyOrder[]>('/orders/my');
+
+export const fetchOrderById = (id: number): Promise<MyOrder> =>
+  userApiFetch<MyOrder>(`/orders/${id}`);

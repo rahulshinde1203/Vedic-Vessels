@@ -41,12 +41,22 @@ export default function OrderSuccessPage() {
           Thank you for your purchase. Your sacred items are on their way.
         </p>
 
-        <Link
-          href="/shop"
-          className="inline-block px-8 py-3 rounded-full bg-brand-gold text-brand-charcoal text-sm font-bold hover:bg-brand-gold-dark active:scale-[0.98] transition-all duration-150 shadow-sm"
-        >
-          Continue Shopping
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {orderId && (
+            <Link
+              href={`/orders/${orderId}`}
+              className="inline-block px-8 py-3 rounded-full bg-brand-gold text-brand-charcoal text-sm font-bold hover:bg-brand-gold-dark active:scale-[0.98] transition-all duration-150 shadow-sm"
+            >
+              Track Order
+            </Link>
+          )}
+          <Link
+            href="/shop"
+            className="inline-block px-8 py-3 rounded-full border border-gray-200 text-gray-600 text-sm font-semibold hover:border-brand-gold hover:text-brand-gold active:scale-[0.98] transition-all duration-150"
+          >
+            Continue Shopping
+          </Link>
+        </div>
 
       </div>
     </div>

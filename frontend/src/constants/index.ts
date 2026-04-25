@@ -2,10 +2,10 @@ export const APP_NAME = 'Vedic Vessels';
 export const APP_TAGLINE = 'Sacred Vessels for Sacred Rituals';
 
 export const NAV_LINKS = [
-  { href: '/',        label: 'Home'    },
-  { href: '/shop',    label: 'Shop'    },
-  { href: '/about',   label: 'About'   },
-  { href: '/contact', label: 'Contact' },
+  { href: '/',          label: 'Home'      },
+  { href: '/shop',      label: 'Shop'      },
+  { href: '/my-orders', label: 'My Orders' },
+  { href: '/support',   label: 'Support'   },
 ] as const;
 
 export const CATEGORIES = [

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 import type { Product } from '@/types';
 import { formatPrice } from '@/lib/utils';
@@ -87,7 +88,7 @@ export default function ProductCard({ product }: { product: Product }) {
     <div className="group flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden">
 
       {/* ── Image area ── */}
-      <div className="relative aspect-3/4 bg-gray-50 overflow-hidden">
+      <Link href={`/product/${product.id}`} className="relative aspect-3/4 bg-gray-50 overflow-hidden block">
 
         {/* Discount badge */}
         {product.discount && (
@@ -126,7 +127,7 @@ export default function ProductCard({ product }: { product: Product }) {
             🏷️ Limited Deal
           </div>
         )}
-      </div>
+      </Link>
 
       {/* ── Card body ── */}
       <div className="flex flex-col flex-1 p-3 gap-1.5">
@@ -137,9 +138,11 @@ export default function ProductCard({ product }: { product: Product }) {
         </span>
 
         {/* Product name */}
-        <h3 className="text-sm font-semibold text-gray-800 leading-snug min-h-10 flex-1 group-hover:text-brand-gold transition-colors duration-200">
-          {product.name}
-        </h3>
+        <Link href={`/product/${product.id}`}>
+          <h3 className="text-sm font-semibold text-gray-800 leading-snug min-h-10 flex-1 group-hover:text-brand-gold transition-colors duration-200">
+            {product.name}
+          </h3>
+        </Link>
 
         {/* Star rating */}
         {product.rating != null && product.reviewCount != null && (

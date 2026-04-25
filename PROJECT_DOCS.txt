@@ -1,6 +1,6 @@
 ================================================================================
   VEDIC VESSELS — COMPLETE PROJECT DOCUMENTATION
-  Last Updated: April 25, 2026 — 6:00 PM IST
+  Last Updated: 26 Apr 2026 · 12:43 am
   Author: Rahul Shinde
 ================================================================================
 
@@ -962,5 +962,264 @@
     git status
 
 ================================================================================
+
+█▓░ AUTO-GENERATED SECTION — DO NOT EDIT MANUALLY ░▓█
+  Last synced: 26 Apr 2026 · 12:43 am
+  Trigger:     (unknown)
+
+  ── FEATURES IMPLEMENTED ──────────────────────────────────────────────────
+  ✅ Auth (OTP + JWT)
+  ✅ Product API
+  ✅ Order API
+  ✅ Order History (GET /orders/my)
+  ✅ Payment (Razorpay)
+  ✅ Address management
+  ✅ Admin panel (products/orders/users)
+  ✅ Support ticket system
+  ✅ Cloudinary image upload
+  ✅ Product detail page (/product/[id])
+  ✅ Cart (Zustand + localStorage)
+  ✅ My Orders page
+  ✅ Order tracking UI
+  ✅ Support UI (/support)
+  ✅ Prisma migrations
+
+  ── API ROUTES (scanned from *.routes.ts) ─────────────────────────────────
+  GET     /api/v1/address
+  POST    /api/v1/address
+  GET     /api/v1/address/:id
+  GET     /api/v1/admin/categories
+  POST    /api/v1/admin/categories
+  GET     /api/v1/admin/orders
+  GET     /api/v1/admin/orders/:id
+  PATCH   /api/v1/admin/orders/:id
+  GET     /api/v1/admin/products
+  POST    /api/v1/admin/products
+  DELETE  /api/v1/admin/products/:id
+  PATCH   /api/v1/admin/products/:id
+  GET     /api/v1/admin/stats
+  GET     /api/v1/admin/support
+  GET     /api/v1/admin/support/:id
+  PATCH   /api/v1/admin/support/:id
+  POST    /api/v1/admin/support/:id/reply
+  GET     /api/v1/admin/users
+  POST    /api/v1/auth/send-otp
+  POST    /api/v1/auth/verify-otp
+  POST    /api/v1/orders
+  GET     /api/v1/orders/:id
+  GET     /api/v1/orders/my
+  POST    /api/v1/payment/create-order
+  POST    /api/v1/payment/verify
+  GET     /api/v1/products
+  GET     /api/v1/products/:id
+  POST    /api/v1/support
+  GET     /api/v1/support/:id
+  POST    /api/v1/support/:id/reply
+  GET     /api/v1/support/my
+
+  ── DATABASE MODELS (scanned from schema.prisma) ──────────────────────────
+  enum Role: USER | ADMIN
+  enum OrderStatus: PENDING | SHIPPED | DELIVERED
+  enum TicketStatus: OPEN | IN_PROGRESS | RESOLVED
+
+  model User {
+    id                 Int @id
+    name               String?
+    phone              String @unique
+    email              String?
+    role               Role @default(USER)
+    createdAt          DateTime @default(now())
+    updatedAt          DateTime @updatedAt
+    orders             Order[]
+    addresses          Address[]
+    supportTickets     SupportTicket[]
+  }
+
+  model Category {
+    id                 Int @id
+    name               String @unique
+    isActive           Boolean @default(true)
+    createdAt          DateTime @default(now())
+    updatedAt          DateTime @updatedAt
+    products           Product[]
+  }
+
+  model Product {
+    id                 Int @id
+    name               String
+    description        String? @db.Text
+    mrp                Decimal @db.Decimal(10,
+    price              Decimal @db.Decimal(10,
+    discountPercent    Decimal @db.Decimal(5,
+    stock              Int @default(0)
+    imageUrl           String? @map("image_url")
+    images             Json @default("[]")
+    isActive           Boolean @default(true)
+    categoryId         Int @map("category_id")
+    createdAt          DateTime @default(now())
+  }
+
+  model Address {
+    id                 Int @id
+    userId             Int @map("user_id")
+    fullName           String @map("full_name")
+    phone              String
+    address            String @db.Text
+    city               String
+    state              String
+    pincode            String
+    createdAt          DateTime @default(now())
+    user               User @relation(fields:
+    orders             Order[]
+  }
+
+  model Order {
+    id                 Int @id
+    userId             Int @map("user_id")
+    addressId          Int? @map("address_id")
+    totalAmount        Decimal @db.Decimal(10,
+    deliveryAddress    String? @db.Text
+    status             OrderStatus @default(PENDING)
+    trackingId         String? @map("tracking_id")
+    courierName        String? @map("courier_name")
+    trackingUrl        String? @map("tracking_url")
+    createdAt          DateTime @default(now())
+    updatedAt          DateTime @updatedAt
+    user               User @relation(fields:
+  }
+
+  model OrderItem {
+    id                 Int @id
+    orderId            Int @map("order_id")
+    productId          Int @map("product_id")
+    quantity           Int @default(1)
+    price              Decimal @db.Decimal(10,
+    order              Order @relation(fields:
+    product            Product @relation(fields:
+  }
+
+  model SupportTicket {
+    id                 Int @id
+    userId             Int @map("user_id")
+    orderId            Int? @map("order_id")
+    subject            String
+    message            String @db.Text
+    status             TicketStatus @default(OPEN)
+    createdAt          DateTime @default(now())
+    updatedAt          DateTime @updatedAt
+    user               User @relation(fields:
+    order              Order? @relation(fields:
+    replies            SupportReply[]
+  }
+
+  model SupportReply {
+    id                 Int @id
+    ticketId           Int @map("ticket_id")
+    message            String @db.Text
+    isAdmin            Boolean @default(false)
+    createdAt          DateTime @default(now())
+    ticket             SupportTicket @relation(fields:
+  }
+
+  ── SOURCE FILE TREE ──────────────────────────────────────────────────────
+  backend/src/ (39 source files)
+    backend/src/app.ts
+    backend/src/common/config/env.ts
+    backend/src/common/lib/cloudinary.ts
+    backend/src/common/lib/prisma.ts
+    backend/src/common/middleware/auth.ts
+    backend/src/common/middleware/logger.ts
+    backend/src/common/middleware/requireAdmin.ts
+    backend/src/common/middleware/upload.ts
+    backend/src/common/types/express.d.ts
+    backend/src/modules/address/address.controller.ts
+    backend/src/modules/address/address.routes.ts
+    backend/src/modules/address/address.service.ts
+    backend/src/modules/address/address.types.ts
+    backend/src/modules/admin/admin.controller.ts
+    backend/src/modules/admin/admin.routes.ts
+    backend/src/modules/admin/admin.service.ts
+    backend/src/modules/admin/admin.types.ts
+    backend/src/modules/auth/auth.controller.ts
+    backend/src/modules/auth/auth.routes.ts
+    backend/src/modules/auth/auth.service.ts
+    backend/src/modules/auth/auth.types.ts
+    backend/src/modules/orders/order.controller.ts
+    backend/src/modules/orders/order.routes.ts
+    backend/src/modules/orders/order.service.ts
+    backend/src/modules/orders/order.types.ts
+    backend/src/modules/payment/payment.controller.ts
+    backend/src/modules/payment/payment.routes.ts
+    backend/src/modules/payment/payment.service.ts
+    backend/src/modules/payment/payment.types.ts
+    backend/src/modules/products/product.controller.ts
+    ... and 9 more
+
+  frontend/src/ (41 source files)
+    frontend/src/app/cart/page.tsx
+    frontend/src/app/checkout/page.tsx
+    frontend/src/app/layout.tsx
+    frontend/src/app/login/page.tsx
+    frontend/src/app/my-orders/page.tsx
+    frontend/src/app/order-success/page.tsx
+    frontend/src/app/orders/[id]/page.tsx
+    frontend/src/app/page.tsx
+    frontend/src/app/product/[id]/page.tsx
+    frontend/src/app/providers.tsx
+    frontend/src/app/shop/page.tsx
+    frontend/src/app/support/[id]/page.tsx
+    frontend/src/app/support/page.tsx
+    frontend/src/components/sections/HeroSection.tsx
+    frontend/src/components/shared/CategoryStrip.tsx
+    frontend/src/components/shared/DealStrip.tsx
+    frontend/src/components/shared/Footer.tsx
+    frontend/src/components/shared/HeroBanner.tsx
+    frontend/src/components/shared/ImageGallery.tsx
+    frontend/src/components/shared/Navbar.tsx
+    frontend/src/components/shared/ProductActions.tsx
+    frontend/src/components/shared/ProductGrid.tsx
+    frontend/src/components/shared/ShopFilters.tsx
+    frontend/src/components/ui/Button.tsx
+    frontend/src/components/ui/FadeIn.tsx
+    frontend/src/components/ui/ProductCard.tsx
+    frontend/src/constants/index.ts
+    frontend/src/features/products/services/index.ts
+    frontend/src/features/products/types.ts
+    frontend/src/lib/api.ts
+    ... and 11 more
+
+  admin/src/ (29 source files)
+    admin/src/app/(admin)/categories/page.tsx
+    admin/src/app/(admin)/dashboard/page.tsx
+    admin/src/app/(admin)/layout.tsx
+    admin/src/app/(admin)/orders/page.tsx
+    admin/src/app/(admin)/products/page.tsx
+    admin/src/app/(admin)/support/page.tsx
+    admin/src/app/(admin)/users/page.tsx
+    admin/src/app/layout.tsx
+    admin/src/app/login/page.tsx
+    admin/src/app/page.tsx
+    admin/src/components/charts/RevenueChart.tsx
+    admin/src/components/dashboard/OrdersTable.tsx
+    admin/src/components/dashboard/QuickActions.tsx
+    admin/src/components/layout/Header.tsx
+    admin/src/components/layout/Sidebar.tsx
+    admin/src/components/ui/Badge.tsx
+    admin/src/components/ui/Button.tsx
+    admin/src/components/ui/Card.tsx
+    admin/src/components/ui/StatCard.tsx
+    admin/src/lib/api.ts
+    admin/src/services/auth.service.ts
+    admin/src/services/categories.service.ts
+    admin/src/services/dashboard.service.ts
+    admin/src/services/orders.service.ts
+    admin/src/services/products.service.ts
+    admin/src/services/support.service.ts
+    admin/src/services/users.service.ts
+    admin/src/store/auth.store.ts
+    admin/src/types/index.ts
+
+█▓░ END AUTO-GENERATED SECTION ░▓█
+
   END OF DOCUMENTATION
 ================================================================================

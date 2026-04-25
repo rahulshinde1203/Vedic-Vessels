@@ -24,5 +24,18 @@ export interface CreateCategoryBody {
 export type AdminOrderStatus = 'PENDING' | 'SHIPPED' | 'DELIVERED';
 
 export interface UpdateOrderStatusBody {
-  status: AdminOrderStatus;
+  status:       AdminOrderStatus;
+  trackingId?:  string;
+  courierName?: string;
+  trackingUrl?: string;
+}
+
+export type AdminTicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
+
+export interface UpdateTicketStatusBody {
+  status: AdminTicketStatus;
+}
+
+export interface AddTicketReplyBody {
+  message: string;
 }

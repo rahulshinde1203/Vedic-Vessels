@@ -5,6 +5,7 @@ import type {
   UpdateProductBody,
   CreateCategoryBody,
   AdminOrderStatus,
+  AdminTicketStatus,
 } from './admin.types';
 
 function makeError(message: string, statusCode: number): Error {
@@ -251,14 +252,89 @@ export async function getAdminOrderById(id: number) {
   return order;
 }
 
-export async function updateOrderStatus(id: number, status: AdminOrderStatus) {
+export async function updateOrderStatus(
+  id:       number,
+  status:   AdminOrderStatus,
+  tracking: { trackingId?: string; courierName?: string; trackingUrl?: string } = {},
+) {
   const VALID: AdminOrderStatus[] = ['PENDING', 'SHIPPED', 'DELIVERED'];
   if (!VALID.includes(status)) throw makeError('Invalid status', 400);
 
   const order = await prisma.order.findUnique({ where: { id } });
   if (!order) throw makeError('Order not found', 404);
 
-  return prisma.order.update({ where: { id }, data: { status } });
+  return prisma.order.update({
+    where: { id },
+    data:  {
+      status,
+      ...(tracking.trackingId  !== undefined && { trackingId:  tracking.trackingId  || null }),
+      ...(tracking.courierName !== undefined && { courierName: tracking.courierName || null }),
+      ...(tracking.trackingUrl !== undefined && { trackingUrl: tracking.trackingUrl || null }),
+    },
+  });
+}
+
+// ── Support ────────────────────────────────────────────────────────────────────
+
+export async function getAdminSupportTickets() {
+  const tickets = await prisma.supportTicket.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      user:    { select: { id: true, phone: true, name: true } },
+      order:   { select: { id: true } },
+      replies: { orderBy: { createdAt: 'desc' }, take: 1 },
+    },
+  });
+  return tickets.map((t) => ({
+    id:           t.id,
+    subject:      t.subject,
+    status:       t.status,
+    user:         t.user,
+    orderId:      t.orderId,
+    createdAt:    t.createdAt,
+    lastReply:    t.replies[0] ?? null,
+    replyCount:   t.replies.length,
+  }));
+}
+
+export async function getAdminTicketById(id: number) {
+  const ticket = await prisma.supportTicket.findUnique({
+    where:   { id },
+    include: {
+      user:    { select: { id: true, phone: true, name: true } },
+      order:   { select: { id: true, status: true } },
+      replies: { orderBy: { createdAt: 'asc' } },
+    },
+  });
+  if (!ticket) throw makeError('Ticket not found', 404);
+  return ticket;
+}
+
+export async function updateTicketStatus(id: number, status: AdminTicketStatus) {
+  const VALID: AdminTicketStatus[] = ['OPEN', 'IN_PROGRESS', 'RESOLVED'];
+  if (!VALID.includes(status)) throw makeError('Invalid ticket status', 400);
+
+  const ticket = await prisma.supportTicket.findUnique({ where: { id } });
+  if (!ticket) throw makeError('Ticket not found', 404);
+
+  return prisma.supportTicket.update({ where: { id }, data: { status } });
+}
+
+export async function addAdminReply(ticketId: number, message: string) {
+  const ticket = await prisma.supportTicket.findUnique({ where: { id: ticketId } });
+  if (!ticket) throw makeError('Ticket not found', 404);
+  if (!message?.trim()) throw makeError('Reply message is required', 400);
+
+  const [reply] = await prisma.$transaction([
+    prisma.supportReply.create({
+      data: { ticketId, message: message.trim(), isAdmin: true },
+    }),
+    prisma.supportTicket.update({
+      where: { id: ticketId },
+      data:  { status: 'IN_PROGRESS', updatedAt: new Date() },
+    }),
+  ]);
+  return reply;
 }
 
 // ── Users ──────────────────────────────────────────────────────────────────────

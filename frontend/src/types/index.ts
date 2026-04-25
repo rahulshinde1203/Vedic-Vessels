@@ -6,6 +6,8 @@ export interface Product {
   price: number;
   mrp?: number;
   discount?: number;
+  discountPercent?: number;
+  images?: string[];
   stock: number;
   imageUrl?: string | null;
   isActive: boolean;

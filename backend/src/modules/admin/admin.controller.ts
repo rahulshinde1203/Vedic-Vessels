@@ -4,6 +4,8 @@ import type {
   UpdateProductBody,
   CreateCategoryBody,
   UpdateOrderStatusBody,
+  UpdateTicketStatusBody,
+  AddTicketReplyBody,
 } from './admin.types';
 
 function handleError(res: Response, err: unknown): void {
@@ -90,10 +92,44 @@ export async function getOrderById(req: Request, res: Response): Promise<void> {
 
 export async function updateOrderStatus(req: Request, res: Response): Promise<void> {
   try {
-    const id         = parseInt(req.params.id, 10);
-    const { status } = req.body as UpdateOrderStatusBody;
-    const data       = await adminService.updateOrderStatus(id, status);
+    const id = parseInt(req.params.id, 10);
+    const { status, trackingId, courierName, trackingUrl } = req.body as UpdateOrderStatusBody;
+    const data = await adminService.updateOrderStatus(id, status, { trackingId, courierName, trackingUrl });
     res.json({ success: true, data });
+  } catch (err) { handleError(res, err); }
+}
+
+// ── Admin Support ──────────────────────────────────────────────────────────────
+
+export async function getAdminTickets(req: Request, res: Response): Promise<void> {
+  try {
+    const data = await adminService.getAdminSupportTickets();
+    res.json({ success: true, data });
+  } catch (err) { handleError(res, err); }
+}
+
+export async function getAdminTicketById(req: Request, res: Response): Promise<void> {
+  try {
+    const data = await adminService.getAdminTicketById(parseInt(req.params.id, 10));
+    res.json({ success: true, data });
+  } catch (err) { handleError(res, err); }
+}
+
+export async function updateTicketStatus(req: Request, res: Response): Promise<void> {
+  try {
+    const id       = parseInt(req.params.id, 10);
+    const { status } = req.body as UpdateTicketStatusBody;
+    const data     = await adminService.updateTicketStatus(id, status);
+    res.json({ success: true, data });
+  } catch (err) { handleError(res, err); }
+}
+
+export async function addAdminTicketReply(req: Request, res: Response): Promise<void> {
+  try {
+    const id      = parseInt(req.params.id, 10);
+    const { message } = req.body as AddTicketReplyBody;
+    const data    = await adminService.addAdminReply(id, message);
+    res.status(201).json({ success: true, data });
   } catch (err) { handleError(res, err); }
 }
 

@@ -10,6 +10,7 @@ import {
   type AdminOrderRow,
   type AdminOrderDetail,
   type OrderStatus,
+  type ShipOrderInput,
 } from '@/services/orders.service';
 
 const STATUS_BADGE: Record<OrderStatus, 'success' | 'warning' | 'purple'> = {
@@ -30,16 +31,98 @@ const NEXT_LABEL: Record<OrderStatus, string | null> = {
   DELIVERED: null,
 };
 
+// ── Ship Order Modal ───────────────────────────────────────────────────────────
+
+function ShipModal({
+  orderId,
+  onClose,
+  onConfirm,
+}: {
+  orderId:   number;
+  onClose:   () => void;
+  onConfirm: (tracking: ShipOrderInput) => Promise<void>;
+}) {
+  const [trackingId,  setTrackingId]  = useState('');
+  const [courierName, setCourierName] = useState('');
+  const [trackingUrl, setTrackingUrl] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onConfirm({
+        trackingId:  trackingId.trim()  || undefined,
+        courierName: courierName.trim() || undefined,
+        trackingUrl: trackingUrl.trim() || undefined,
+      });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <h2 className="text-sm font-bold text-slate-800">Ship Order #{orderId}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg leading-none">×</button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <p className="text-xs text-slate-500">Add tracking details (optional) before marking as shipped.</p>
+
+          {[
+            { label: 'Tracking ID',   value: trackingId,  set: setTrackingId,  placeholder: 'e.g. 1Z999AA…' },
+            { label: 'Courier Name',  value: courierName, set: setCourierName, placeholder: 'e.g. BlueDart' },
+            { label: 'Tracking URL',  value: trackingUrl, set: setTrackingUrl, placeholder: 'https://track.courier.com/…' },
+          ].map(({ label, value, set, placeholder }) => (
+            <div key={label}>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">{label}</label>
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => set(e.target.value)}
+                placeholder={placeholder}
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/30 transition-all"
+              />
+            </div>
+          ))}
+
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 py-2 rounded-lg bg-brand-gold text-brand-charcoal text-sm font-bold hover:bg-brand-gold-dark disabled:opacity-50 transition-colors"
+            >
+              {saving ? 'Saving…' : 'Mark Shipped'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Order Detail Panel ─────────────────────────────────────────────────────────
 
 function OrderDetail({
   orderId,
   onClose,
   onStatusUpdate,
+  onShipRequest,
 }: {
-  orderId: number;
-  onClose: () => void;
+  orderId:        number;
+  onClose:        () => void;
   onStatusUpdate: (id: number, status: OrderStatus) => void;
+  onShipRequest:  (id: number) => void;
 }) {
   const [order,    setOrder]    = useState<AdminOrderDetail | null>(null);
   const [loading,  setLoading]  = useState(true);
@@ -49,14 +132,14 @@ function OrderDetail({
     fetchAdminOrderById(orderId).then(setOrder).finally(() => setLoading(false));
   }, [orderId]);
 
-  const handleStatusUpdate = async (status: OrderStatus) => {
-    if (!order) return;
+  const handleMarkDelivered = async () => {
+    if (!order || order.status !== 'SHIPPED') return;
     setUpdating(true);
     try {
-      await updateAdminOrderStatus(order.id, status);
-      setOrder((prev) => prev ? { ...prev, status } : prev);
-      onStatusUpdate(order.id, status);
-      toast.success(`Order marked as ${status.toLowerCase()}`);
+      await updateAdminOrderStatus(order.id, 'DELIVERED');
+      setOrder((prev) => prev ? { ...prev, status: 'DELIVERED' } : prev);
+      onStatusUpdate(order.id, 'DELIVERED');
+      toast.success('Order marked as delivered');
     } catch (err: any) {
       toast.error(err.message ?? 'Failed to update status');
     } finally {
@@ -85,13 +168,21 @@ function OrderDetail({
             {/* Status + action */}
             <div className="flex items-center justify-between">
               <Badge label={order.status} variant={STATUS_BADGE[order.status]} />
-              {NEXT_STATUS[order.status] && (
+              {order.status === 'PENDING' && (
                 <button
-                  onClick={() => handleStatusUpdate(NEXT_STATUS[order.status]!)}
-                  disabled={updating}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-gold/10 text-brand-gold hover:bg-brand-gold/20 transition-colors disabled:opacity-50"
+                  onClick={() => { onClose(); onShipRequest(order.id); }}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-gold/10 text-brand-gold hover:bg-brand-gold/20 transition-colors"
                 >
-                  {updating ? 'Updating…' : NEXT_LABEL[order.status]}
+                  Mark Shipped
+                </button>
+              )}
+              {order.status === 'SHIPPED' && (
+                <button
+                  onClick={handleMarkDelivered}
+                  disabled={updating}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors disabled:opacity-50"
+                >
+                  {updating ? 'Updating…' : 'Mark Delivered'}
                 </button>
               )}
             </div>
@@ -153,20 +244,31 @@ export default function OrdersPage() {
   const [orders,      setOrders]      = useState<AdminOrderRow[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [detailId,    setDetailId]    = useState<number | null>(null);
+  const [shipOrderId, setShipOrderId] = useState<number | null>(null);
   const [updatingId,  setUpdatingId]  = useState<number | null>(null);
 
   useEffect(() => {
     fetchAdminOrders().then(setOrders).finally(() => setLoading(false));
   }, []);
 
-  const handleQuickStatus = async (order: AdminOrderRow) => {
-    const next = NEXT_STATUS[order.status];
-    if (!next) return;
+  const handleShipConfirm = async (orderId: number, tracking: ShipOrderInput) => {
+    try {
+      await updateAdminOrderStatus(orderId, 'SHIPPED', tracking);
+      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: 'SHIPPED' } : o));
+      toast.success(`Order #${orderId} marked as shipped`);
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to update status');
+      throw err;
+    }
+  };
+
+  const handleQuickDeliver = async (order: AdminOrderRow) => {
+    if (order.status !== 'SHIPPED') return;
     setUpdatingId(order.id);
     try {
-      await updateAdminOrderStatus(order.id, next);
-      setOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, status: next } : o));
-      toast.success(`Order #${order.id} marked as ${next.toLowerCase()}`);
+      await updateAdminOrderStatus(order.id, 'DELIVERED');
+      setOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, status: 'DELIVERED' } : o));
+      toast.success(`Order #${order.id} marked as delivered`);
     } catch (err: any) {
       toast.error(err.message ?? 'Failed to update status');
     } finally {
@@ -228,13 +330,21 @@ export default function OrdersPage() {
                         >
                           View
                         </button>
-                        {NEXT_STATUS[order.status] && (
+                        {order.status === 'PENDING' && (
                           <button
-                            onClick={() => handleQuickStatus(order)}
-                            disabled={updatingId === order.id}
-                            className="text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors disabled:opacity-50"
+                            onClick={() => setShipOrderId(order.id)}
+                            className="text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
                           >
-                            {updatingId === order.id ? '…' : NEXT_LABEL[order.status]}
+                            Ship
+                          </button>
+                        )}
+                        {order.status === 'SHIPPED' && (
+                          <button
+                            onClick={() => handleQuickDeliver(order)}
+                            disabled={updatingId === order.id}
+                            className="text-xs font-medium text-green-600 hover:text-green-800 transition-colors disabled:opacity-50"
+                          >
+                            {updatingId === order.id ? '…' : 'Deliver'}
                           </button>
                         )}
                       </div>
@@ -259,6 +369,15 @@ export default function OrdersPage() {
           orderId={detailId}
           onClose={() => setDetailId(null)}
           onStatusUpdate={handleDetailStatusUpdate}
+          onShipRequest={(id) => { setDetailId(null); setShipOrderId(id); }}
+        />
+      )}
+
+      {shipOrderId !== null && (
+        <ShipModal
+          orderId={shipOrderId}
+          onClose={() => setShipOrderId(null)}
+          onConfirm={(tracking) => handleShipConfirm(shipOrderId, tracking)}
         />
       )}
     </div>

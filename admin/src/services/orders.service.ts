@@ -32,8 +32,18 @@ export const fetchAdminOrders = () =>
 export const fetchAdminOrderById = (id: number) =>
   apiFetch<AdminOrderDetail>(`/admin/orders/${id}`);
 
-export const updateAdminOrderStatus = (id: number, status: OrderStatus) =>
+export interface ShipOrderInput {
+  trackingId?:  string;
+  courierName?: string;
+  trackingUrl?: string;
+}
+
+export const updateAdminOrderStatus = (
+  id:       number,
+  status:   OrderStatus,
+  tracking: ShipOrderInput = {},
+) =>
   apiFetch<{ id: number; status: OrderStatus }>(`/admin/orders/${id}`, {
     method: 'PATCH',
-    body:   JSON.stringify({ status }),
+    body:   JSON.stringify({ status, ...tracking }),
   });
