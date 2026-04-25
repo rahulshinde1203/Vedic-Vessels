@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE `products` ADD COLUMN `discount_percent` DECIMAL(5, 2) NOT NULL DEFAULT 0,
+    ADD COLUMN `images` JSON NOT NULL,
+    ADD COLUMN `mrp` DECIMAL(10, 2) NOT NULL DEFAULT 0;

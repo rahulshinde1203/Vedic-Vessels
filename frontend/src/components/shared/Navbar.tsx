@@ -2,13 +2,18 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { NAV_LINKS } from '@/constants';
 import { useCartStore } from '@/store/cart.store';
+import { useAuthStore } from '@/store/auth.store';
+import type { AuthUser } from '@/store/auth.store';
 
 export default function Navbar() {
+  const router = useRouter();
   const [query, setQuery] = useState('');
 
-  // Read cart count after mount to avoid SSR/localStorage hydration mismatch
+  // Hydration-safe cart count
   const [cartCount, setCartCount] = useState(0);
   useEffect(() => {
     setCartCount(
@@ -18,6 +23,19 @@ export default function Navbar() {
       setCartCount(state.items.reduce((s, i) => s + i.quantity, 0));
     });
   }, []);
+
+  // Hydration-safe auth state
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  useEffect(() => {
+    setAuthUser(useAuthStore.getState().user);
+    return useAuthStore.subscribe((state) => setAuthUser(state.user));
+  }, []);
+
+  const handleLogout = () => {
+    useAuthStore.getState().logout();
+    toast.success('Logged out');
+    router.push('/');
+  };
 
   return (
     <header className="sticky top-0 z-50">
@@ -77,17 +95,31 @@ export default function Navbar() {
                 <span className="hidden md:block text-sm font-medium">Cart</span>
               </Link>
 
-              {/* Login */}
-              <Link
-                href="/login"
-                className="flex items-center gap-1.5 text-sm font-semibold text-brand-charcoal border border-brand-gold/50 hover:border-brand-gold hover:text-brand-gold px-4 py-2 rounded-full transition-all duration-200"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Login
-              </Link>
+              {/* Auth */}
+              {authUser ? (
+                <div className="flex items-center gap-2">
+                  <span className="hidden md:block text-sm font-semibold text-gray-700">
+                    {authUser.phone}
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="text-xs font-semibold text-gray-500 border border-gray-300 hover:border-red-400 hover:text-red-500 px-3 py-1.5 rounded-full transition-all duration-200"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="flex items-center gap-1.5 text-sm font-semibold text-brand-charcoal border border-brand-gold/50 hover:border-brand-gold hover:text-brand-gold px-4 py-2 rounded-full transition-all duration-200"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Login
+                </Link>
+              )}
 
             </div>
           </div>

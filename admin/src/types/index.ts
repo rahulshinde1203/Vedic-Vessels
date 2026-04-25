@@ -1,10 +1,10 @@
-export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+export type OrderStatus = 'PENDING' | 'SHIPPED' | 'DELIVERED';
 
 export interface AdminOrder {
   id: string;
   customer: string;
   amount: number;
-  status: OrderStatus;
+  status: OrderStatus | 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   date: string;
   items: number;
 }

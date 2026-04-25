@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
   useCartStore,
@@ -10,6 +11,7 @@ import {
   selectIsCartValid,
 } from '@/store/cart.store';
 import { formatPrice } from '@/lib/utils';
+import { useAuthStore } from '@/store/auth.store';
 import type { CartItem } from '@/types';
 
 // ── Cart Item Row ─────────────────────────────────────────────────────────────
@@ -133,6 +135,7 @@ function CartItemRow({
 // ── Cart Page ─────────────────────────────────────────────────────────────────
 
 export default function CartPage() {
+  const router = useRouter();
   const { items, removeFromCart, increaseQty, decreaseQty, clearCart } = useCartStore();
   const subtotal    = useCartStore(selectCartTotal);
   const totalItems  = useCartStore(selectCartCount);
@@ -145,6 +148,15 @@ export default function CartPage() {
   const handleRemove = (item: CartItem) => {
     removeFromCart(item.id);
     toast.success(`Removed from cart`);
+  };
+
+  const handleCheckout = () => {
+    if (!cartValid) return;
+    if (!useAuthStore.getState().token) {
+      router.push('/login?redirect=/checkout');
+      return;
+    }
+    router.push('/checkout');
   };
 
   if (!mounted) {
@@ -233,6 +245,7 @@ export default function CartPage() {
               </div>
 
               <button
+                onClick={handleCheckout}
                 disabled={!cartValid}
                 className={`mt-5 w-full py-3 rounded-lg text-sm font-bold transition-all duration-150 shadow-sm ${
                   cartValid
