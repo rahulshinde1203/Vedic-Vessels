@@ -14,6 +14,7 @@ export interface OrderItem {
 export interface MyOrder {
   id:              number;
   status:          'PENDING' | 'SHIPPED' | 'DELIVERED';
+  shipmentStatus:  string | null;
   totalAmount:     number;
   trackingId:      string | null;
   courierName:     string | null;
@@ -22,6 +23,17 @@ export interface MyOrder {
   createdAt:       string;
   updatedAt:       string;
   orderItems:      OrderItem[];
+}
+
+export interface OrderTracking {
+  id:             number;
+  status:         'PENDING' | 'SHIPPED' | 'DELIVERED';
+  shipmentStatus: string | null;
+  trackingId:     string | null;
+  courierName:    string | null;
+  trackingUrl:    string | null;
+  createdAt:      string;
+  updatedAt:      string;
 }
 
 export interface OrderResult {
@@ -64,3 +76,6 @@ export const fetchMyOrders = (): Promise<MyOrder[]> =>
 
 export const fetchOrderById = (id: number): Promise<MyOrder> =>
   userApiFetch<MyOrder>(`/orders/${id}`);
+
+export const fetchOrderTracking = (id: number): Promise<OrderTracking> =>
+  userApiFetch<OrderTracking>(`/orders/${id}/track`);

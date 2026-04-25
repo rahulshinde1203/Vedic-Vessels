@@ -252,10 +252,14 @@ export async function getAdminOrderById(id: number) {
   return order;
 }
 
+function buildTrackingUrl(trackingId: string | null | undefined): string | null {
+  return trackingId ? `https://shiprocket.co/tracking/${trackingId}` : null;
+}
+
 export async function updateOrderStatus(
   id:       number,
   status:   AdminOrderStatus,
-  tracking: { trackingId?: string; courierName?: string; trackingUrl?: string } = {},
+  tracking: { trackingId?: string; courierName?: string } = {},
 ) {
   const VALID: AdminOrderStatus[] = ['PENDING', 'SHIPPED', 'DELIVERED'];
   if (!VALID.includes(status)) throw makeError('Invalid status', 400);
@@ -263,13 +267,29 @@ export async function updateOrderStatus(
   const order = await prisma.order.findUnique({ where: { id } });
   if (!order) throw makeError('Order not found', 404);
 
+  const newTrackingId = tracking.trackingId !== undefined
+    ? (tracking.trackingId.trim() || null)
+    : undefined;
+
+  // Auto-generate the Shiprocket tracking URL from trackingId
+  const newTrackingUrl = newTrackingId !== undefined
+    ? buildTrackingUrl(newTrackingId)
+    : undefined;
+
+  // Keep shipmentStatus in sync with order status
+  const shipmentStatus =
+    status === 'SHIPPED'   ? 'SHIPPED'   :
+    status === 'DELIVERED' ? 'DELIVERED' :
+    undefined;
+
   return prisma.order.update({
     where: { id },
     data:  {
       status,
-      ...(tracking.trackingId  !== undefined && { trackingId:  tracking.trackingId  || null }),
-      ...(tracking.courierName !== undefined && { courierName: tracking.courierName || null }),
-      ...(tracking.trackingUrl !== undefined && { trackingUrl: tracking.trackingUrl || null }),
+      ...(newTrackingId  !== undefined && { trackingId:  newTrackingId }),
+      ...(newTrackingUrl !== undefined && { trackingUrl: newTrackingUrl }),
+      ...(tracking.courierName !== undefined && { courierName: tracking.courierName.trim() || null }),
+      ...(shipmentStatus !== undefined && { shipmentStatus }),
     },
   });
 }

@@ -4,9 +4,10 @@ import { authenticate } from '../../common/middleware/auth';
 
 const router = Router();
 
-router.post('/',    authenticate, orderController.createOrder);
+router.post('/',          authenticate, orderController.createOrder);
 // /my must be before /:id to avoid being matched as an id
-router.get('/my',   authenticate, orderController.getMyOrders);
-router.get('/:id',  authenticate, orderController.getMyOrderById);
+router.get('/my',         authenticate, orderController.getMyOrders);
+router.get('/:id/track',  authenticate, orderController.trackOrder);
+router.get('/:id',        authenticate, orderController.getMyOrderById);
 
 export default router;

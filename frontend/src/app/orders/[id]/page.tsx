@@ -6,49 +6,21 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { fetchOrderById, type MyOrder } from '@/services/order.service';
 import { formatPrice } from '@/lib/utils';
+import OrderTimeline from '@/components/shared/OrderTimeline';
+import TrackingInfoCard from '@/components/shared/TrackingInfoCard';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Status label ──────────────────────────────────────────────────────────────
 
-type Status = 'PENDING' | 'SHIPPED' | 'DELIVERED';
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const TIMELINE: { key: Status; label: string; icon: string }[] = [
-  { key: 'PENDING',   label: 'Order Placed',       icon: '📋' },
-  { key: 'SHIPPED',   label: 'Shipped',             icon: '🚚' },
-  { key: 'DELIVERED', label: 'Delivered',           icon: '✅' },
-];
-
-const STATUS_ORDER: Record<Status, number> = { PENDING: 0, SHIPPED: 1, DELIVERED: 2 };
-
-function StatusTimeline({ status }: { status: Status }) {
-  const current = STATUS_ORDER[status] ?? 0;
-  return (
-    <div className="flex items-start gap-0">
-      {TIMELINE.map((step, i) => {
-        const done    = STATUS_ORDER[step.key] <= current;
-        const isLast  = i === TIMELINE.length - 1;
-        return (
-          <div key={step.key} className="flex-1 flex flex-col items-center">
-            <div className="flex items-center w-full">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2 transition-colors z-10 ${
-                done ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-200 text-gray-400'
-              }`}>
-                {done ? '✓' : <span className="text-xs">{step.icon}</span>}
-              </div>
-              {!isLast && (
-                <div className={`flex-1 h-0.5 ${done && STATUS_ORDER[TIMELINE[i + 1].key] <= current ? 'bg-green-400' : 'bg-gray-200'}`} />
-              )}
-            </div>
-            <p className={`text-[10px] font-semibold mt-1.5 text-center ${done ? 'text-green-600' : 'text-gray-400'}`}>
-              {step.label}
-            </p>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+const STATUS_STYLE: Record<string, string> = {
+  PENDING:   'bg-amber-100 text-amber-700 border-amber-200',
+  SHIPPED:   'bg-blue-100  text-blue-700  border-blue-200',
+  DELIVERED: 'bg-green-100 text-green-700 border-green-200',
+};
+const STATUS_LABEL: Record<string, string> = {
+  PENDING:   'Order Placed',
+  SHIPPED:   'Shipped',
+  DELIVERED: 'Delivered',
+};
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -56,6 +28,7 @@ export default function OrderDetailPage() {
   const params  = useParams();
   const router  = useRouter();
   const token   = useAuthStore((s) => s.token);
+
   const [order,   setOrder]   = useState<MyOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
@@ -63,7 +36,7 @@ export default function OrderDetailPage() {
   const orderId = Number(params.id);
 
   useEffect(() => {
-    if (!token) { router.replace('/login'); return; }
+    if (!token)   { router.replace('/login'); return; }
     if (!orderId) { setError('Invalid order'); setLoading(false); return; }
     fetchOrderById(orderId)
       .then(setOrder)
@@ -75,7 +48,7 @@ export default function OrderDetailPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 space-y-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-20 bg-white rounded-xl animate-pulse border border-gray-100" />
+          <div key={i} className="h-24 bg-white rounded-xl animate-pulse border border-gray-100" />
         ))}
       </div>
     );
@@ -83,72 +56,106 @@ export default function OrderDetailPage() {
 
   if (error || !order) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <p className="text-red-500 text-sm mb-4">{error || 'Order not found'}</p>
-        <Link href="/my-orders" className="text-sm text-brand-gold hover:underline">← Back to Orders</Link>
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <span className="text-4xl block mb-4">📦</span>
+        <p className="text-gray-700 font-semibold mb-1">{error || 'Order not found'}</p>
+        <Link href="/my-orders" className="mt-4 inline-block text-sm text-brand-gold hover:underline">
+          ← Back to My Orders
+        </Link>
       </div>
     );
   }
 
-  const hasTracking = order.trackingId || order.courierName;
+  const statusLabel = STATUS_LABEL[order.status] ?? order.status;
+  const statusStyle = STATUS_STYLE[order.status] ?? '';
+  const firstItem   = order.orderItems[0];
 
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
 
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-gray-400 mb-6">
+        {/* ── Breadcrumb ── */}
+        <nav className="flex items-center gap-2 text-xs text-gray-400 mb-6">
+          <Link href="/" className="hover:text-brand-gold transition-colors">Home</Link>
+          <span>/</span>
           <Link href="/my-orders" className="hover:text-brand-gold transition-colors">My Orders</Link>
           <span>/</span>
           <span className="text-gray-600 font-medium">Order #{String(order.id).padStart(4, '0')}</span>
+        </nav>
+
+        {/* ── Order header card ── */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <p className="text-xs text-gray-400 font-mono">
+                Order #{String(order.id).padStart(4, '0')}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Placed on {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                  day: 'numeric', month: 'long', year: 'numeric',
+                })}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusStyle}`}>
+                {statusLabel}
+              </span>
+              <span className="text-base font-bold text-brand-gold">
+                {formatPrice(order.totalAmount)}
+              </span>
+            </div>
+          </div>
+
+          {/* Preview item */}
+          {firstItem && (
+            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-50">
+              <div className="w-10 h-10 rounded-lg bg-amber-50 border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
+                {firstItem.product.imageUrl ? (
+                  <img src={firstItem.product.imageUrl} alt={firstItem.product.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-lg">🏺</span>
+                )}
+              </div>
+              <p className="text-sm text-gray-700 font-medium truncate">
+                {firstItem.product.name}
+                {order.orderItems.length > 1 && (
+                  <span className="text-gray-400 font-normal"> +{order.orderItems.length - 1} more</span>
+                )}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-4">
 
-          {/* Status Timeline */}
+          {/* ── Timeline ── */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-5">
-              Order Status
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-6">
+              Order Progress
             </p>
-            <StatusTimeline status={order.status as Status} />
+            <OrderTimeline
+              status={order.status}
+              shipmentStatus={order.shipmentStatus}
+              createdAt={order.createdAt}
+              updatedAt={order.updatedAt}
+            />
           </div>
 
-          {/* Tracking Info */}
-          {hasTracking && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Tracking</p>
-              {order.courierName && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Courier</span>
-                  <span className="font-semibold text-gray-800">{order.courierName}</span>
-                </div>
-              )}
-              {order.trackingId && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Tracking ID</span>
-                  <span className="font-mono font-semibold text-gray-800">{order.trackingId}</span>
-                </div>
-              )}
-              {order.trackingUrl && (
-                <a
-                  href={order.trackingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 w-full justify-center py-2.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-sm font-bold hover:bg-blue-100 transition-colors mt-1"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                  Track Package
-                </a>
-              )}
-            </div>
+          {/* ── Tracking ── */}
+          {(order.status === 'SHIPPED' || order.status === 'DELIVERED') && (
+            <TrackingInfoCard
+              trackingId={order.trackingId}
+              courierName={order.courierName}
+              trackingUrl={order.trackingUrl}
+              shipmentStatus={order.shipmentStatus}
+            />
           )}
 
-          {/* Order Items */}
+          {/* ── Items ── */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Items</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">
+              Items Ordered
+            </p>
             <div className="space-y-4">
               {order.orderItems.map((item) => (
                 <div key={item.id} className="flex items-center gap-3">
@@ -166,7 +173,9 @@ export default function OrderDetailPage() {
                     >
                       {item.product.name}
                     </Link>
-                    <p className="text-xs text-gray-400 mt-0.5">Qty: {item.quantity}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Qty: {item.quantity} × {formatPrice(item.price)}
+                    </p>
                   </div>
                   <span className="text-sm font-bold text-gray-900 shrink-0">
                     {formatPrice(item.price * item.quantity)}
@@ -175,32 +184,44 @@ export default function OrderDetailPage() {
               ))}
             </div>
 
-            {/* Total */}
-            <div className="border-t border-gray-100 pt-4 mt-4 flex justify-between">
-              <span className="text-sm font-semibold text-gray-700">Order Total</span>
-              <span className="text-base font-bold text-brand-gold">{formatPrice(order.totalAmount)}</span>
+            <div className="border-t border-gray-100 pt-4 mt-4 space-y-1.5">
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>Subtotal</span>
+                <span className="font-medium text-gray-700">{formatPrice(order.totalAmount)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>Delivery</span>
+                <span className="font-semibold text-green-600">FREE</span>
+              </div>
+              <div className="flex justify-between text-base font-bold pt-1 border-t border-gray-100 mt-1">
+                <span className="text-gray-900">Total</span>
+                <span className="text-brand-gold">{formatPrice(order.totalAmount)}</span>
+              </div>
             </div>
           </div>
 
-          {/* Delivery Address */}
+          {/* ── Delivery Address ── */}
           {order.deliveryAddress && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Delivery Address</p>
-              <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">📍</span>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Delivery Address</p>
+              </div>
+              <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed pl-7">
                 {order.deliveryAddress}
               </p>
             </div>
           )}
 
-          {/* Support CTA */}
+          {/* ── Support CTA ── */}
           <div className="bg-amber-50 rounded-xl border border-amber-100 p-5 flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-gray-800">Need help with this order?</p>
-              <p className="text-xs text-gray-500 mt-0.5">Raise a support ticket and we&apos;ll get back to you.</p>
+              <p className="text-xs text-gray-500 mt-0.5">Raise a ticket and we&apos;ll resolve it quickly.</p>
             </div>
             <Link
               href={`/support?orderId=${order.id}`}
-              className="shrink-0 px-4 py-2 rounded-lg bg-brand-gold text-brand-charcoal text-xs font-bold hover:bg-brand-gold-dark transition-colors"
+              className="shrink-0 px-4 py-2 rounded-lg bg-brand-gold text-brand-charcoal text-xs font-bold hover:bg-brand-gold-dark transition-colors whitespace-nowrap"
             >
               Get Help
             </Link>

@@ -1,6 +1,6 @@
 ================================================================================
   VEDIC VESSELS — COMPLETE PROJECT DOCUMENTATION
-  Last Updated: 26 Apr 2026 · 12:43 am
+  Last Updated: 26 Apr 2026 · 01:10 am
   Author: Rahul Shinde
 ================================================================================
 
@@ -964,7 +964,7 @@
 ================================================================================
 
 █▓░ AUTO-GENERATED SECTION — DO NOT EDIT MANUALLY ░▓█
-  Last synced: 26 Apr 2026 · 12:43 am
+  Last synced: 26 Apr 2026 · 01:10 am
   Trigger:     (unknown)
 
   ── FEATURES IMPLEMENTED ──────────────────────────────────────────────────
@@ -987,7 +987,10 @@
   ── API ROUTES (scanned from *.routes.ts) ─────────────────────────────────
   GET     /api/v1/address
   POST    /api/v1/address
+  DELETE  /api/v1/address/:id
   GET     /api/v1/address/:id
+  PATCH   /api/v1/address/:id
+  PATCH   /api/v1/address/:id/default
   GET     /api/v1/admin/categories
   POST    /api/v1/admin/categories
   GET     /api/v1/admin/orders
@@ -1007,6 +1010,7 @@
   POST    /api/v1/auth/verify-otp
   POST    /api/v1/orders
   GET     /api/v1/orders/:id
+  GET     /api/v1/orders/:id/track
   GET     /api/v1/orders/my
   POST    /api/v1/payment/create-order
   POST    /api/v1/payment/verify
@@ -1016,6 +1020,8 @@
   GET     /api/v1/support/:id
   POST    /api/v1/support/:id/reply
   GET     /api/v1/support/my
+  GET     /api/v1/user/profile
+  PATCH   /api/v1/user/profile
 
   ── DATABASE MODELS (scanned from schema.prisma) ──────────────────────────
   enum Role: USER | ADMIN
@@ -1068,6 +1074,7 @@
     city               String
     state              String
     pincode            String
+    isDefault          Boolean @default(false)
     createdAt          DateTime @default(now())
     user               User @relation(fields:
     orders             Order[]
@@ -1083,9 +1090,9 @@
     trackingId         String? @map("tracking_id")
     courierName        String? @map("courier_name")
     trackingUrl        String? @map("tracking_url")
+    shipmentStatus     String? @map("shipment_status")
     createdAt          DateTime @default(now())
     updatedAt          DateTime @updatedAt
-    user               User @relation(fields:
   }
 
   model OrderItem {
@@ -1122,7 +1129,7 @@
   }
 
   ── SOURCE FILE TREE ──────────────────────────────────────────────────────
-  backend/src/ (39 source files)
+  backend/src/ (42 source files)
     backend/src/app.ts
     backend/src/common/config/env.ts
     backend/src/common/lib/cloudinary.ts
@@ -1153,9 +1160,9 @@
     backend/src/modules/payment/payment.service.ts
     backend/src/modules/payment/payment.types.ts
     backend/src/modules/products/product.controller.ts
-    ... and 9 more
+    ... and 12 more
 
-  frontend/src/ (41 source files)
+  frontend/src/ (46 source files)
     frontend/src/app/cart/page.tsx
     frontend/src/app/checkout/page.tsx
     frontend/src/app/layout.tsx
@@ -1165,6 +1172,8 @@
     frontend/src/app/orders/[id]/page.tsx
     frontend/src/app/page.tsx
     frontend/src/app/product/[id]/page.tsx
+    frontend/src/app/profile/address/page.tsx
+    frontend/src/app/profile/page.tsx
     frontend/src/app/providers.tsx
     frontend/src/app/shop/page.tsx
     frontend/src/app/support/[id]/page.tsx
@@ -1176,17 +1185,15 @@
     frontend/src/components/shared/HeroBanner.tsx
     frontend/src/components/shared/ImageGallery.tsx
     frontend/src/components/shared/Navbar.tsx
+    frontend/src/components/shared/OrderTimeline.tsx
     frontend/src/components/shared/ProductActions.tsx
     frontend/src/components/shared/ProductGrid.tsx
     frontend/src/components/shared/ShopFilters.tsx
+    frontend/src/components/shared/TrackingInfoCard.tsx
     frontend/src/components/ui/Button.tsx
     frontend/src/components/ui/FadeIn.tsx
     frontend/src/components/ui/ProductCard.tsx
-    frontend/src/constants/index.ts
-    frontend/src/features/products/services/index.ts
-    frontend/src/features/products/types.ts
-    frontend/src/lib/api.ts
-    ... and 11 more
+    ... and 16 more
 
   admin/src/ (29 source files)
     admin/src/app/(admin)/categories/page.tsx

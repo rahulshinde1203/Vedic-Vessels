@@ -128,6 +128,24 @@ export async function getMyOrders(userId: number) {
   }));
 }
 
+export async function getOrderTracking(userId: number, orderId: number) {
+  const order = await prisma.order.findFirst({
+    where:  { id: orderId, userId },
+    select: {
+      id:              true,
+      status:          true,
+      shipmentStatus:  true,
+      trackingId:      true,
+      courierName:     true,
+      trackingUrl:     true,
+      createdAt:       true,
+      updatedAt:       true,
+    },
+  });
+  if (!order) throw makeError('Order not found', 404);
+  return order;
+}
+
 export async function getMyOrderById(userId: number, orderId: number) {
   const order = await prisma.order.findFirst({
     where:   { id: orderId, userId },
@@ -142,6 +160,7 @@ export async function getMyOrderById(userId: number, orderId: number) {
   return {
     id:              order.id,
     status:          order.status,
+    shipmentStatus:  order.shipmentStatus,
     totalAmount:     Number(order.totalAmount),
     deliveryAddress: order.deliveryAddress,
     trackingId:      order.trackingId,

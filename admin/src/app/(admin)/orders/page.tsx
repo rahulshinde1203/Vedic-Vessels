@@ -44,8 +44,7 @@ function ShipModal({
 }) {
   const [trackingId,  setTrackingId]  = useState('');
   const [courierName, setCourierName] = useState('');
-  const [trackingUrl, setTrackingUrl] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [saving,      setSaving]      = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,13 +53,16 @@ function ShipModal({
       await onConfirm({
         trackingId:  trackingId.trim()  || undefined,
         courierName: courierName.trim() || undefined,
-        trackingUrl: trackingUrl.trim() || undefined,
       });
       onClose();
     } finally {
       setSaving(false);
     }
   };
+
+  const previewUrl = trackingId.trim()
+    ? `https://shiprocket.co/tracking/${trackingId.trim()}`
+    : null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
@@ -70,12 +72,11 @@ function ShipModal({
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg leading-none">×</button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <p className="text-xs text-slate-500">Add tracking details (optional) before marking as shipped.</p>
+          <p className="text-xs text-slate-500">Enter tracking details before marking as shipped.</p>
 
           {[
-            { label: 'Tracking ID',   value: trackingId,  set: setTrackingId,  placeholder: 'e.g. 1Z999AA…' },
-            { label: 'Courier Name',  value: courierName, set: setCourierName, placeholder: 'e.g. BlueDart' },
-            { label: 'Tracking URL',  value: trackingUrl, set: setTrackingUrl, placeholder: 'https://track.courier.com/…' },
+            { label: 'Tracking ID',  value: trackingId,  set: setTrackingId,  placeholder: 'e.g. 1Z999AA10123456784' },
+            { label: 'Courier Name', value: courierName, set: setCourierName, placeholder: 'e.g. BlueDart, Delhivery' },
           ].map(({ label, value, set, placeholder }) => (
             <div key={label}>
               <label className="block text-xs font-semibold text-slate-600 mb-1">{label}</label>
@@ -88,6 +89,18 @@ function ShipModal({
               />
             </div>
           ))}
+
+          {/* Auto-URL preview */}
+          <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5">
+            <p className="text-[10px] font-semibold text-slate-500 mb-1 uppercase tracking-wide">
+              Tracking URL (auto-generated)
+            </p>
+            {previewUrl ? (
+              <p className="text-[11px] text-blue-600 break-all font-mono">{previewUrl}</p>
+            ) : (
+              <p className="text-[11px] text-slate-400 italic">Enter Tracking ID to preview URL</p>
+            )}
+          </div>
 
           <div className="flex gap-3 pt-1">
             <button

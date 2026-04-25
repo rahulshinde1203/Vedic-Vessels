@@ -35,7 +35,6 @@ export const fetchAdminOrderById = (id: number) =>
 export interface ShipOrderInput {
   trackingId?:  string;
   courierName?: string;
-  trackingUrl?: string;
 }
 
 export const updateAdminOrderStatus = (

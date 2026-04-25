@@ -27,7 +27,6 @@ export interface UpdateOrderStatusBody {
   status:       AdminOrderStatus;
   trackingId?:  string;
   courierName?: string;
-  trackingUrl?: string;
 }
 
 export type AdminTicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';

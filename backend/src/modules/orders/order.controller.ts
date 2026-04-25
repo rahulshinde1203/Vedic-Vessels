@@ -42,3 +42,11 @@ export async function getMyOrderById(req: Request, res: Response): Promise<void>
     res.json({ success: true, data });
   } catch (err) { handleError(res, err); }
 }
+
+export async function trackOrder(req: Request, res: Response): Promise<void> {
+  try {
+    const orderId = parseInt(req.params.id, 10);
+    const data    = await orderService.getOrderTracking(req.user!.id, orderId);
+    res.json({ success: true, data });
+  } catch (err) { handleError(res, err); }
+}

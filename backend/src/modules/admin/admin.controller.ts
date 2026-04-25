@@ -93,8 +93,8 @@ export async function getOrderById(req: Request, res: Response): Promise<void> {
 export async function updateOrderStatus(req: Request, res: Response): Promise<void> {
   try {
     const id = parseInt(req.params.id, 10);
-    const { status, trackingId, courierName, trackingUrl } = req.body as UpdateOrderStatusBody;
-    const data = await adminService.updateOrderStatus(id, status, { trackingId, courierName, trackingUrl });
+    const { status, trackingId, courierName } = req.body as UpdateOrderStatusBody;
+    const data = await adminService.updateOrderStatus(id, status, { trackingId, courierName });
     res.json({ success: true, data });
   } catch (err) { handleError(res, err); }
 }
