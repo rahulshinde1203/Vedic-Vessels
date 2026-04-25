@@ -3,6 +3,7 @@ import { Cinzel, Inter } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/shared/Navbar';
 import Footer from '@/components/shared/Footer';
+import Providers from './providers';
 
 const cinzel = Cinzel({
   subsets: ['latin'],
@@ -26,9 +27,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${cinzel.variable} ${inter.variable}`}>
-      <body className="bg-brand-cream text-brand-charcoal font-sans antialiased min-h-screen flex flex-col">
+      <body className="text-brand-charcoal font-sans antialiased min-h-screen flex flex-col">
         <Navbar />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1"><Providers>{children}</Providers></main>
         <Footer />
       </body>
     </html>

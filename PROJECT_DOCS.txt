@@ -1,0 +1,966 @@
+================================================================================
+  VEDIC VESSELS — COMPLETE PROJECT DOCUMENTATION
+  Last Updated: April 25, 2026 — 6:00 PM IST
+  Author: Rahul Shinde
+================================================================================
+
+--------------------------------------------------------------------------------
+  CHANGELOG  (newest first)
+--------------------------------------------------------------------------------
+
+  Apr 25, 2026 · 06:00 PM  PROJECT_DOCS.txt updated — full rewrite for Day 3 state
+  Apr 25, 2026 · 05:30 PM  Cart system: production polish — priceInPaise, cartId
+                             (UUID), isActive guards, markItemInactive, updateItemStock,
+                             selectIsCartValid, react-hot-toast, schema migration v1,
+                             checkout button validity gating, per-item OOS warnings
+  Apr 25, 2026 · 04:30 PM  Cart system: logic fixes — stock cap on addToCart /
+                             increaseQty, decreaseQty removes at qty=1, CartItem
+                             stores stock snapshot, selectCartTotal / selectCartCount
+                             selectors, cart page hydration fix (mounted guard)
+  Apr 25, 2026 · 03:00 PM  Add to Cart system built — Zustand store with localStorage
+                             persist, ProductCard wired, cart/page.tsx created,
+                             Navbar cart badge + Link
+  Apr 25, 2026 · 02:00 PM  React rendering error fixed — product.category was object
+                             {id, name}, not a string; Product type updated; ProductCard
+                             uses product.category.name everywhere
+  Apr 25, 2026 · 01:00 PM  Frontend connected to backend API — fetchProducts()
+                             service created; ProductGrid converted to client component
+                             (useEffect self-fetch); shop/page.tsx uses real API;
+                             PLACEHOLDER_PRODUCTS removed; Product type updated to
+                             match API response (id: number, stock, isActive, category
+                             as object); Prisma Decimal → Number normalization added
+  Apr 25, 2026 · 12:00 PM  Database seeded — prisma/seed.ts with 4 categories +
+                             10 products; db:seed npm script + prisma.seed config
+  Apr 25, 2026 · 11:00 AM  Backend product API built — modules/products/ with
+                             service, controller, routes; GET /products + GET
+                             /products/:id; Prisma client singleton; DB migrated
+  Apr 25, 2026 · 10:30 AM  PROJECT_DOCS.txt updated — date/time log added
+  Apr 25, 2026 · 09:00 AM  PROJECT_DOCS.txt created with full project state
+  Apr 25, 2026 · 08:30 AM  UI Polish Pass 2 — DealStrip, Limited Deal ribbon,
+                             gradient CTA, CategoryStrip border-2 active state,
+                             ProductGrid section headers with left-border accent
+  Apr 25, 2026 · 08:00 AM  /shop 404 fixed — created shop/page.tsx + ShopFilters.tsx
+  Apr 24, 2026 · Evening    UI Polish Pass 1 — hero height reduced, gold color
+                             system, product card aspect-3/4, ecommerce signals
+  Apr 24, 2026 · Afternoon  Dev server errors fixed — allowedDevOrigins, stale
+                             cache cleared, CategoryStrip duplicate resolved
+  Apr 24, 2026 · Afternoon  Marketplace UI redesign — Navbar, HeroBanner,
+                             CategoryStrip, ProductCard, ProductGrid, 3-section
+                             homepage (Trending / Best Deals / Featured)
+  Apr 23, 2026 · All day    Day 1 Foundation — Backend (Express + Prisma) +
+                             Frontend (Next.js 16 + Tailwind v4) + Admin dashboard
+
+--------------------------------------------------------------------------------
+  TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+
+  1.  Project Overview
+  2.  Tech Stack
+  3.  Folder Structure
+  4.  Environment Variables
+  5.  How to Run
+  6.  Architecture Decisions
+  7.  All Errors Encountered + Solutions
+  8.  Tailwind v4 Class Reference
+  9.  API Routes
+  10. Database Schema
+  11. Cart System
+  12. Git History Summary
+  13. Build Log (Day by Day)
+  14. Pending / Next Steps
+
+================================================================================
+  1. PROJECT OVERVIEW
+================================================================================
+
+  Name:         Vedic Vessels
+  Type:         E-commerce platform for sacred ritual items (puja vessels,
+                brass/copper/silver diyas, incense holders, kalash, etc.)
+  Architecture: Monorepo with 3 independent apps
+
+  Apps:
+    backend/   — REST API server (Node.js + Express + TypeScript + Prisma)
+    frontend/  — Customer storefront (Next.js 16 + Tailwind CSS v4)
+    admin/     — Admin dashboard (Next.js 16 + Tailwind CSS v4)
+
+  Current Status (April 25, 2026 — End of Day 3):
+    ✅ Backend product API live (GET /products, GET /products/:id)
+    ✅ MySQL database migrated and seeded (4 categories, 10 products)
+    ✅ Frontend connected to real API (no placeholder data)
+    ✅ Add to Cart system complete (Zustand + localStorage + toasts)
+    ✅ Cart page with quantity controls, order summary, validity gating
+    ✅ Navbar shows live cart count badge, links to /cart
+
+  Design Direction:
+    Marketplace style (Amazon/Flipkart/Myntra quality)
+    Light, high-conversion layout with warm gold/copper brand accents
+    Body background: #F5F5F5 (marketplace gray, NOT cream)
+
+  Brand Colors:
+    Gold:        #C9A84C  (primary brand accent, CTAs, active states)
+    Gold Light:  #E8CC7A
+    Gold Dark:   #A67C00
+    Gold Warm:   #D4A843
+    Copper:      #B87333  (category labels, accent text)
+    Copper Dark: #8B5E3C
+    Cream:       #FFF8E7
+    Charcoal:    #1E1A14  (body text, nav strips)
+    Brown:       #6B5B3E
+    Amber:       #E8A020  (used in CTA gradients)
+
+================================================================================
+  2. TECH STACK
+================================================================================
+
+  BACKEND (backend/)
+  ------------------
+  Runtime:      Node.js 20
+  Language:     TypeScript (strict mode)
+  Framework:    Express.js 4
+  ORM:          Prisma 5 (with MySQL datasource)
+  Dev server:   ts-node-dev (hot reload)
+  Port:         5000
+  API prefix:   /api/v1
+
+  Key packages:
+    express, cors, dotenv, @prisma/client
+    @types/express, @types/cors, @types/node
+    ts-node-dev, typescript, prisma
+
+  Seeding:
+    ts-node --transpile-only prisma/seed.ts
+    (ts-node available via ts-node-dev dependency)
+
+  FRONTEND (frontend/)
+  --------------------
+  Framework:    Next.js 16.2.4 (App Router, Turbopack)
+  Language:     TypeScript (strict mode)
+  Styling:      Tailwind CSS v4 (CSS-based config, NO tailwind.config.ts)
+  Fonts:        Cinzel (serif, brand), Inter (sans, body) via next/font/google
+  State:        Zustand 5.x (cart store with localStorage persist)
+  Toasts:       react-hot-toast
+  Port:         3000 (or 3001 if taken)
+
+  Key packages:
+    next, react, react-dom, typescript
+    tailwindcss (v4, CSS-based config)
+    zustand (v5)
+    react-hot-toast
+
+  ADMIN (admin/)
+  --------------
+  Framework:    Next.js 16.2.4 (App Router)
+  Language:     TypeScript (strict mode)
+  Styling:      Tailwind CSS v4
+  Font:         Inter via next/font/google
+  Port:         3001 (if 3000 is taken)
+
+================================================================================
+  3. FOLDER STRUCTURE
+================================================================================
+
+  vedic vessels/
+  ├── PROJECT_DOCS.txt              ← This file
+  │
+  ├── backend/
+  │   ├── prisma/
+  │   │   ├── schema.prisma         ← Prisma schema (5 models: User, Category,
+  │   │   │                           Product, Order, OrderItem)
+  │   │   ├── seed.ts               ← Seed script: 4 categories + 10 products
+  │   │   └── migrations/
+  │   │       └── 20260424090142_init/
+  │   │           └── migration.sql ← Initial migration (all 5 tables)
+  │   ├── src/
+  │   │   ├── app.ts                ← Express app setup, cors, routes mount
+  │   │   ├── server.ts             ← Entry point, listens on config.port
+  │   │   ├── common/
+  │   │   │   ├── config/
+  │   │   │   │   └── env.ts        ← dotenv.config() + typed config export
+  │   │   │   └── lib/
+  │   │   │       └── prisma.ts     ← PrismaClient singleton (global in dev)
+  │   │   ├── modules/
+  │   │   │   └── products/
+  │   │   │       ├── product.controller.ts  ← getProducts(), getProduct()
+  │   │   │       ├── product.routes.ts      ← GET /products, GET /products/:id
+  │   │   │       ├── product.service.ts     ← getAllProducts(), getProductById()
+  │   │   │       └── product.types.ts       ← ProductWithCategory, ApiResponse<T>
+  │   │   └── routes/
+  │   │       └── index.ts          ← GET /health + mounts product routes
+  │   ├── .env                      ← Real secrets (gitignored)
+  │   ├── .env.example              ← Template with empty values
+  │   ├── package.json              ← includes db:seed script + prisma.seed config
+  │   └── tsconfig.json
+  │
+  ├── frontend/
+  │   ├── src/
+  │   │   ├── app/
+  │   │   │   ├── globals.css       ← Tailwind v4 @theme, brand colors, animations
+  │   │   │   ├── layout.tsx        ← Root layout: Navbar + Providers(main) + Footer
+  │   │   │   ├── providers.tsx     ← 'use client' wrapper for <Toaster />
+  │   │   │   ├── page.tsx          ← Homepage: Hero, Categories, DealStrip,
+  │   │   │   │                       3 × ProductGrid (self-fetch, no passed products)
+  │   │   │   ├── shop/
+  │   │   │   │   └── page.tsx      ← Async server component; fetches real API with
+  │   │   │   │                       optional category filter; error + empty states
+  │   │   │   └── cart/
+  │   │   │       └── page.tsx      ← 'use client' cart page; hydration-safe (mounted
+  │   │   │                           guard); item rows with qty controls + warnings;
+  │   │   │                           order summary; checkout validity gating
+  │   │   ├── components/
+  │   │   │   ├── shared/
+  │   │   │   │   ├── Navbar.tsx        ← 'use client'; cart count via useEffect +
+  │   │   │   │   │                       subscribe (hydration-safe); Cart → Link /cart
+  │   │   │   │   ├── HeroBanner.tsx    ← Server component
+  │   │   │   │   ├── CategoryStrip.tsx ← 'use client' (active pill state)
+  │   │   │   │   ├── DealStrip.tsx     ← Server component
+  │   │   │   │   ├── ProductGrid.tsx   ← 'use client'; self-fetches via fetchProducts()
+  │   │   │   │   │                       useEffect; loading / error states; accepts
+  │   │   │   │   │                       optional products prop to skip fetch
+  │   │   │   │   └── ShopFilters.tsx   ← Server component (URL-based active state)
+  │   │   │   └── ui/
+  │   │   │       ├── Button.tsx        ← primary | outline | ghost variants
+  │   │   │       └── ProductCard.tsx   ← 'use client'; full marketplace card;
+  │   │   │                               useCartStore; 3-state button (idle / added /
+  │   │   │                               maxStock); toast notifications; inStock
+  │   │   │                               derived from isActive && stock > 0
+  │   │   ├── constants/
+  │   │   │   └── index.ts              ← APP_NAME, NAV_LINKS, CATEGORIES
+  │   │   │                               (PLACEHOLDER_PRODUCTS removed — uses real API)
+  │   │   ├── features/
+  │   │   │   └── products/             ← Feature module (scalable pattern)
+  │   │   │       ├── components/       ← (empty, ready)
+  │   │   │       ├── hooks/            ← (empty, ready)
+  │   │   │       ├── services/
+  │   │   │       │   └── index.ts      ← getProducts(), getProductBySlug() (advanced
+  │   │   │                               version with pagination params, not used yet)
+  │   │   │       └── types.ts          ← ProductFilters, ProductListParams
+  │   │   ├── lib/
+  │   │   │   └── utils.ts              ← cn(), formatPrice(), truncate()
+  │   │   ├── services/
+  │   │   │   └── product.service.ts    ← fetchProducts(params?) — calls backend API,
+  │   │   │                               normalises response (Decimal→number,
+  │   │   │                               null→undefined), returns Product[]
+  │   │   ├── store/
+  │   │   │   └── cart.store.ts         ← Zustand store (see §11 Cart System)
+  │   │   └── types/
+  │   │       └── index.ts              ← Product, Category, User, CartItem
+  │   │                                   (see §11 for current CartItem shape)
+  │   ├── next.config.ts                ← allowedDevOrigins for LAN device access
+  │   ├── .env.local                    ← NEXT_PUBLIC_API_URL
+  │   ├── package.json
+  │   └── tsconfig.json
+  │
+  └── admin/
+      ├── src/
+      │   ├── app/
+      │   │   ├── globals.css
+      │   │   ├── layout.tsx
+      │   │   ├── page.tsx              ← redirect('/dashboard')
+      │   │   └── (admin)/
+      │   │       ├── layout.tsx        ← Sidebar + Header + main shell
+      │   │       └── dashboard/
+      │   │           └── page.tsx      ← Stats cards, quick actions, orders table
+      │   ├── components/
+      │   │   ├── layout/
+      │   │   │   ├── Sidebar.tsx       ← 'use client', usePathname, active links
+      │   │   │   └── Header.tsx
+      │   │   └── ui/
+      │   │       ├── Badge.tsx, Button.tsx, Card.tsx
+      │   └── types/index.ts
+      ├── .env.local
+      ├── package.json
+      └── tsconfig.json
+
+================================================================================
+  4. ENVIRONMENT VARIABLES
+================================================================================
+
+  BACKEND — backend/.env (real) / backend/.env.example (template)
+  ---------------------------------------------------------------
+  PORT=5000
+  DATABASE_URL=mysql://USER:PASSWORD@localhost:3306/vedic_vessels
+  JWT_SECRET=your_jwt_secret_here
+  NODE_ENV=development
+
+  FRONTEND — frontend/.env.local
+  ---------------------------------------------------------------
+  NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
+
+  ADMIN — admin/.env.local
+  ---------------------------------------------------------------
+  NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
+
+================================================================================
+  5. HOW TO RUN
+================================================================================
+
+  IMPORTANT: There is NO root package.json.
+  Each app must be run from its own directory.
+
+  Terminal 1 — Backend:
+    cd backend
+    npm install          (first time only)
+    npm run dev          → ts-node-dev src/server.ts on :5000
+
+  Terminal 2 — Frontend:
+    cd frontend
+    npm install          (first time only)
+    npm run dev          → Next.js 16 on :3000
+
+  Terminal 3 — Admin (optional):
+    cd admin
+    npm install          (first time only)
+    npm run dev          → Next.js 16 on :3001
+
+  Seed the database (run once after migration):
+    cd backend
+    npm run db:seed      ← inserts 4 categories + 10 products
+    # OR:
+    npx prisma db seed
+
+  Backend scripts:
+    npm run dev              → hot reload dev server
+    npm run build            → compile TypeScript to dist/
+    npm run start            → run compiled dist/server.js
+    npm run db:seed          → run prisma/seed.ts
+    npm run prisma:generate  → regenerate Prisma client after schema changes
+    npm run prisma:migrate   → apply schema migrations to DB
+    npm run prisma:studio    → open Prisma Studio GUI at :5555
+
+  Health check:
+    GET http://localhost:5000/api/v1/health
+    → { "success": true, "message": "Server running" }
+
+  Test product API:
+    GET http://localhost:5000/api/v1/products
+    GET http://localhost:5000/api/v1/products/1
+
+  Accessing from another device on LAN:
+    Frontend is reachable at http://192.168.1.10:<port>
+    HMR works because next.config.ts has:
+      allowedDevOrigins: ['192.168.1.10']
+
+================================================================================
+  6. ARCHITECTURE DECISIONS
+================================================================================
+
+  BACKEND
+  -------
+  - Clean Architecture: Controller → Service → DB (via Prisma)
+  - server.ts only starts the server — no logic, no dotenv inline
+  - env.ts owns dotenv loading — imported first
+  - routes/index.ts is the single mount point for all API routes
+  - Prisma schema at backend/prisma/ (default Prisma location, no --schema flag)
+  - PrismaClient is a singleton (src/common/lib/prisma.ts) — prevents "too many
+    connections" in development with ts-node-dev hot reloads
+  - Product queries always include category via { select: { id, name } }
+  - Seed uses upsert for idempotency — safe to run multiple times
+
+  FRONTEND — CLIENT vs SERVER COMPONENTS
+  ----------------------------------------
+  Server components (no 'use client'):
+    HeroBanner, DealStrip, ShopFilters
+    layout.tsx, page.tsx, shop/page.tsx
+
+  Client components ('use client'):
+    Navbar              — uses useState (search) + Zustand (cart count)
+    CategoryStrip       — uses useState (active pill)
+    ProductGrid         — uses useEffect to self-fetch products from API
+    ProductCard         — uses useCartStore (addToCart, cartQty)
+    cart/page.tsx       — uses useCartStore, useState (mounted)
+    providers.tsx       — hosts <Toaster /> from react-hot-toast
+
+  Rule: If a server component needs data from the API, fetch in the component
+  body (async server component). If a client component needs data, use useEffect.
+
+  FRONTEND — API DATA FLOW
+  -------------------------
+  Server components:  fetch directly in component body (async/await)
+                      shop/page.tsx → fetchProducts({ category })
+
+  Client components:  useEffect in ProductGrid → fetchProducts()
+                      ProductGrid does NOT receive products prop on homepage;
+                      all 3 homepage grids self-fetch the same endpoint
+
+  API normalisation:  fetchProducts() in services/product.service.ts maps
+                      the raw API response to the frontend Product type:
+                        - price: Number(p.price)     (Prisma Decimal → number)
+                        - description: p.description ?? undefined
+                        - imageUrl: p.imageUrl ?? null
+
+  FRONTEND — TYPE CONTRACT (Product)
+  ------------------------------------
+  The frontend Product type exactly mirrors what the API returns after
+  normalisation. Key fields:
+
+    id:       number      (backend Int — NOT string)
+    price:    number      (normalised from Prisma Decimal string "1299.00")
+    stock:    number      (backend stock field)
+    isActive: boolean     (backend isActive field)
+    category: { id: number; name: string }  (included relation)
+
+  Fields NOT returned by the API (optional, for future use):
+    mrp?, discount?, rating?, reviewCount?, slug?
+
+  inStock is NOT in the type — derived in components as:
+    const inStock = product.isActive && product.stock > 0
+
+  FRONTEND — SHOP PAGE / FILTERING
+  ----------------------------------
+  - /shop?category=<query> pattern for URL-based filtering
+  - "Puja+Sets" → decoded via .replace(/\+/g, ' ') → "Puja Sets"
+  - searchParams typed as Promise<{...}> and awaited (Next.js 15/16)
+  - ShopFilters is a pure server component — active state from URL prop
+
+  TAILWIND v4 KEY RULES
+  ----------------------
+  - Use @import "tailwindcss" (NOT @tailwind base/components/utilities)
+  - Custom colors: --color-brand-gold: #C9A84C (inside @theme block)
+  - Custom fonts: --font-serif: var(--font-cinzel) (inside @theme block)
+  - Gradients: bg-linear-to-r (NOT bg-gradient-to-r — renamed in v4)
+  - Aspect ratios: aspect-3/4 (NOT aspect-[3/4])
+  - Spacing: max-w-150 (NOT max-w-[600px]), min-h-10 (NOT min-h-[2.5rem])
+
+================================================================================
+  7. ALL ERRORS ENCOUNTERED + SOLUTIONS
+================================================================================
+
+  ERROR 1–18: (unchanged from previous docs — see April 25 9:00 AM version)
+
+  ERROR 19: "Objects are not valid as a React child"
+  --------------------------------------------------
+  Cause:    product.category was rendered as {product.category} directly in
+            JSX, but the API returns category as { id: number, name: string },
+            not a string. The frontend Product type incorrectly declared
+            category: string.
+  Symptom:  Runtime crash: "Objects are not valid as a React child
+            (found: object with keys {id, name})"
+  Fix:      Updated Product type: category: { id: number; name: string }
+            Updated ProductCard: product.category → product.category.name
+            (2 places: ICON lookup and rendered label)
+            Removed PLACEHOLDER_PRODUCTS (dead code, conflicted with new type)
+
+  ERROR 20: Price displayed as "₹1299.00" instead of "₹1,299"
+  --------------------------------------------------------------
+  Cause:    Prisma Decimal type serialises to a string "1299.00" in JSON
+            (via JSON.stringify → Decimal.prototype.toJSON).
+            formatPrice(product.price) called toLocaleString on a string,
+            which returned "1299.00" verbatim — no locale formatting.
+  Fix:      Added normalisation in fetchProducts():
+              price: Number(p.price)
+            Number("1299.00") → 1299, then formatPrice works correctly.
+  Rule:     Always normalise Prisma Decimal fields to Number before storing
+            in frontend state.
+
+  ERROR 21: All products show "Out of Stock" overlay
+  ---------------------------------------------------
+  Cause:    Frontend Product type had inStock: boolean but the API returns
+            isActive: boolean and stock: number (no inStock field).
+            product.inStock was undefined → !undefined → true → OOS overlay shown.
+  Fix:      Updated Product type: removed inStock, added stock: number and
+            isActive: boolean to match the actual API response.
+            Updated ProductCard: inStock derived as
+              product.isActive && product.stock > 0
+  Rule:     Frontend types must mirror actual API shape, not assumptions.
+
+  ERROR 22: Zustand + Next.js SSR hydration mismatch (cart count badge)
+  -----------------------------------------------------------------------
+  Cause:    Navbar reads cart count from Zustand persist store. On server
+            render, localStorage is unavailable → store initialises with
+            items: [] → cartCount = 0. After hydration, store reads
+            localStorage and updates. If items exist, the server-rendered "0"
+            mismatches the client's real count, causing a React hydration warning.
+  Fix:      Used useEffect + useCartStore.subscribe pattern in Navbar:
+              const [cartCount, setCartCount] = useState(0);
+              useEffect(() => {
+                setCartCount(useCartStore.getState().items.reduce(...));
+                return useCartStore.subscribe(state => setCartCount(...));
+              }, []);
+            Server always renders count=0 (no badge). Client sets real count
+            after mount. No mismatch.
+  Also:     Cart page uses const [mounted, setMounted] = useState(false) +
+            useEffect to prevent flashing "Your cart is empty" while Zustand
+            rehydrates from localStorage.
+
+  ERROR 23: Old localStorage cart data missing priceInPaise / isActive fields
+  ---------------------------------------------------------------------------
+  Cause:    After adding priceInPaise and isActive to CartItem, existing
+            localStorage data from a previous session lacked these fields.
+            TypeScript types required them, but runtime values were undefined.
+  Fix:      Added Zustand persist version: 1 with migrate function:
+              migrate: (persisted, version) => {
+                if (version === 0) {
+                  return {
+                    ...state,
+                    cartId: generateCartId(),
+                    items: items.map(item => ({
+                      ...item,
+                      priceInPaise: item.priceInPaise ?? Math.round(item.price * 100),
+                      isActive: item.isActive ?? true,
+                    }))
+                  }
+                }
+              }
+            Bumping version from 0→1 triggers migration automatically on first
+            load after the update. Old data is preserved and enriched.
+
+  ERROR 24: react-hot-toast Toaster in server layout component
+  -------------------------------------------------------------
+  Cause:    layout.tsx is a server component. Importing and rendering
+            <Toaster /> directly would fail because it's a client-side component
+            that uses browser APIs.
+  Symptom:  Error: "You're importing a component that needs ... which is only
+            available in Client components"
+  Fix:      Created src/app/providers.tsx as a minimal 'use client' wrapper
+            that renders {children} + <Toaster />. Layout imports and uses
+            <Providers> around <main> content. Layout stays a server component.
+  Rule:     Any client-only library (toast providers, analytics, etc.) must be
+            wrapped in a 'use client' component before use in server layouts.
+
+================================================================================
+  8. TAILWIND V4 CLASS REFERENCE
+================================================================================
+
+  (unchanged — see full reference in April 25 9:00 AM version)
+
+  Quick reminder of most-used custom classes:
+    bg-brand-gold              → #C9A84C background
+    text-brand-copper          → #B87333 text
+    bg-brand-charcoal          → #1E1A14 background
+    bg-linear-to-r from-brand-gold to-brand-amber  → gradient button
+    aspect-3/4                 → portrait product images
+    border-l-4 border-brand-gold  → section heading accent
+
+================================================================================
+  9. API ROUTES
+================================================================================
+
+  All routes prefixed with: /api/v1
+
+  IMPLEMENTED (April 25, 2026):
+  ─────────────────────────────
+  GET  /health
+       Response: { success: true, message: "Server running" }
+
+  GET  /products
+       Response: { success: true, data: Product[], message: "..." }
+       Product includes: category: { id, name } (Prisma include)
+       Filter support: ?category=Puja+Sets (planned, not yet wired in controller)
+
+  GET  /products/:id
+       Response: { success: true, data: Product, message: "..." }
+       Error 404: { success: false, data: null, message: "Product not found" }
+       Error 400: invalid ID (non-integer)
+
+  PLANNED (Day 4+):
+  ─────────────────
+  Auth:
+    POST   /auth/register
+    POST   /auth/login
+    POST   /auth/logout
+    POST   /auth/refresh
+    GET    /auth/me
+
+  Products (extended):
+    GET    /products            ← add: pagination, search, price range, inStock filter
+    GET    /products/:slug      ← by slug instead of numeric id
+    POST   /products            ← admin only
+    PUT    /products/:id        ← admin only
+    DELETE /products/:id        ← admin only
+
+  Categories:
+    GET    /categories
+    GET    /categories/:slug
+    POST / PUT / DELETE  ← admin only
+
+  Orders:
+    GET    /orders
+    POST   /orders
+    GET    /orders/:id
+    PUT    /orders/:id/cancel
+
+  Admin:
+    GET    /admin/orders, PUT /admin/orders/:id
+    GET    /admin/users
+    GET    /admin/stats
+
+================================================================================
+  10. DATABASE SCHEMA
+================================================================================
+
+  Database: MySQL
+  ORM: Prisma 5
+  Schema: backend/prisma/schema.prisma
+  Migration: backend/prisma/migrations/20260424090142_init/migration.sql
+
+  IMPLEMENTED MODELS:
+
+  User
+    id Int @id @default(autoincrement())
+    name String
+    phone String @unique
+    email String?
+    role Role @default(USER)    ← enum: USER | ADMIN
+    createdAt, updatedAt
+    relations: orders[]
+
+  Category
+    id Int @id @default(autoincrement())
+    name String @unique
+    isActive Boolean @default(true)
+    createdAt, updatedAt
+    relations: products[]
+
+  Product
+    id Int @id @default(autoincrement())
+    name String
+    description String? @db.Text
+    price Decimal @db.Decimal(10,2)
+    stock Int @default(0)
+    imageUrl String? @map("image_url")
+    isActive Boolean @default(true)
+    categoryId Int @map("category_id")
+    createdAt, updatedAt
+    @@unique([name, categoryId])   ← used as upsert key in seed
+    relations: category Category, orderItems OrderItem[]
+
+  Order
+    id, userId, totalAmount Decimal, status OrderStatus
+    status enum: PENDING | SHIPPED | DELIVERED
+    createdAt, updatedAt
+    relations: user User, orderItems OrderItem[]
+
+  OrderItem
+    id, orderId, productId, quantity Int, price Decimal
+    relations: order, product
+
+  SEEDED DATA (backend/prisma/seed.ts):
+    Categories: Puja Sets, Copper Bottles, Brass Vessels, Diyas & Lamps
+    Products:   10 items spread across all 4 categories
+                (see seed.ts for full list with descriptions + prices)
+
+  PLANNED ADDITIONS (Day 4+):
+    Address model (userId, line1, city, state, postalCode)
+    Refresh tokens on User
+    Product: slug, mrp, discount, sku, isFeatured, images (JSON)
+    Cart + CartItem models for server-side cart persistence
+
+================================================================================
+  11. CART SYSTEM
+================================================================================
+
+  OVERVIEW
+  --------
+  The cart is fully client-side using Zustand with localStorage persistence.
+  No backend cart API is needed for the current phase. The store is at:
+    frontend/src/store/cart.store.ts
+
+  CARTITEM SHAPE (types/index.ts)
+  --------------------------------
+  interface CartItem {
+    id:           number        — product ID
+    name:         string
+    price:        number        — display price (₹)
+    priceInPaise: number        — Math.round(price * 100), for payment APIs
+    imageUrl:     string | null
+    quantity:     number
+    stock:        number        — snapshot at add-time; updated by updateItemStock()
+    isActive:     boolean       — snapshot; updated by markItemInactive()
+  }
+
+  STORE ACTIONS
+  -------------
+  addToCart(product)
+    - Guards: !product.isActive → no-op; product.stock <= 0 → no-op
+    - If already in cart AND at stock cap → no-op
+    - If already in cart AND below cap → quantity + 1
+    - If new → appends item with quantity: 1, priceInPaise, stock, isActive snapshot
+
+  removeFromCart(id)         — filters item out
+
+  increaseQty(id)            — quantity + 1, capped at item.stock
+
+  decreaseQty(id)
+    - quantity > 1 → quantity - 1
+    - quantity === 1 → removes item entirely (quantity never shows 0)
+
+  clearCart()                — empties items[], generates new cartId
+
+  markItemInactive(id)       — sets item.isActive = false
+                               (call when product goes offline, e.g. after re-fetch)
+
+  updateItemStock(id, newStock)
+    - Updates item.stock snapshot
+    - If newStock > 0: clamps quantity to Math.min(qty, newStock)
+    - If newStock = 0: leaves quantity unchanged (OOS warning shown instead)
+
+  SELECTORS (exported from cart.store.ts)
+  ----------------------------------------
+  selectCartTotal(state)     → number   sum(price × quantity)
+  selectCartCount(state)     → number   sum(quantity)
+  selectIsCartValid(state)   → boolean  all items active, stock > 0, qty ≤ stock
+
+  Usage:
+    const total = useCartStore(selectCartTotal);
+    const valid = useCartStore(selectIsCartValid);
+
+  PERSIST CONFIG
+  --------------
+  name:    'vedic-vessels-cart'  (localStorage key)
+  version: 1
+  migrate: v0 → v1 adds priceInPaise, isActive, cartId to stale localStorage data
+
+  CARTID
+  ------
+  A UUID (crypto.randomUUID() with Date.now() fallback) stored at the store root.
+  Persists across page loads. Regenerated when clearCart() is called.
+  Purpose: future use for syncing anonymous cart to backend on login.
+
+  TOAST NOTIFICATIONS (react-hot-toast)
+  ----------------------------------------
+  Toaster mounted in: src/app/providers.tsx (client component inside layout)
+  Position: bottom-right, duration: 2500ms
+
+  Trigger                      Toast
+  ─────────────────────────────────────────────
+  Add to cart (success)        toast.success('Added to cart')
+  Add to cart (at max stock)   toast.error('Maximum stock reached')
+  Remove item                  toast.success('Removed from cart')
+
+  CHECKOUT VALIDITY
+  -----------------
+  The "Proceed to Checkout" button is disabled unless selectIsCartValid is true.
+  Conditions for invalid cart:
+    - Any item where isActive === false
+    - Any item where stock === 0
+    - Any item where quantity > stock
+
+  Per-item warnings in CartItemRow:
+    !item.isActive             → "⚠ Product no longer available — please remove"
+    item.stock === 0           → "⚠ Out of stock — please remove"
+    item.quantity > item.stock → "⚠ Only N left — reduce quantity to continue"
+
+  When invalid, name is struck through and quantity controls are hidden;
+  only a "Remove" link is shown.
+
+  HYDRATION SAFETY
+  ----------------
+  Navbar cart count: reads from useCartStore.getState() inside useEffect,
+  then subscribes to future changes. Server render always shows count = 0
+  (badge hidden). Avoids React hydration mismatch.
+
+  Cart page: uses useState(false) + useEffect to set mounted = true.
+  Renders "Loading cart…" until mounted, preventing flash of "empty cart"
+  state while Zustand reads localStorage.
+
+================================================================================
+  12. GIT HISTORY SUMMARY
+================================================================================
+
+  Remote: https://github.com/rahulshinde1203/Vedic-Vessels
+
+  Commits (most recent first):
+    e4c81cd  Restart
+    b183a7a  Merge branch 'main' of https://github.com/...
+    d762aeb  Initial commit
+    73b72f9  Initial commit
+
+  NOTE: All Day 2 + Day 3 work is local-only, uncommitted.
+  Recommend committing in logical chunks:
+    git commit -m "feat: marketplace UI redesign (Navbar, HeroBanner, ProductCard)"
+    git commit -m "feat: backend product API + DB migration + seed"
+    git commit -m "feat: connect frontend to product API"
+    git commit -m "feat: add to cart system (Zustand + localStorage)"
+    git commit -m "feat: cart polish — toasts, stock caps, priceInPaise, validity"
+
+================================================================================
+  13. DAY-BY-DAY BUILD LOG
+================================================================================
+
+  DAY 1 — Foundation (Complete — April 23, 2026)
+  -----------------------------------------------
+  BACKEND:
+    [x] Node.js + Express + TypeScript setup
+    [x] ts-node-dev hot reload
+    [x] Prisma 5 with MySQL datasource
+    [x] Clean Architecture folder structure
+    [x] env.ts owns dotenv loading
+    [x] routes/index.ts with health check
+    [x] app.ts mounts routes at /api/v1
+    [x] .env + .env.example
+    [x] TypeScript strict mode + path aliases
+
+  FRONTEND:
+    [x] Next.js 16 App Router + Turbopack
+    [x] Tailwind CSS v4 with CSS-based config
+    [x] Brand colors + fonts in @theme
+    [x] Navbar, HeroBanner, basic homepage
+    [x] Button + ProductCard UI components
+    [x] Types, constants, utils
+    [x] Feature module: features/products/
+
+  ADMIN:
+    [x] Full-height sidebar layout
+    [x] Dashboard with StatCard grid, Quick Actions, Recent Orders table
+    [x] Badge, Button, Card components
+
+  DAY 2 — Marketplace UI Redesign (Complete — April 23–25, 2026)
+  ---------------------------------------------------------------
+    [x] Body background → #F5F5F5 (marketplace gray)
+    [x] Full brand-gold color system (replaces orange)
+    [x] HeroBanner — warm amber gradient, trust row, featured card
+    [x] CategoryStrip — scrollable pills, border-2 active state
+    [x] DealStrip — Flash Sale | Free Delivery | COD | Returns
+    [x] ProductGrid — badge + title + 4-col grid + View All link
+    [x] ProductCard — aspect-3/4, discount badge, Limited Deal ribbon,
+                      half-star rating, urgency text, gradient CTA
+    [x] Navbar — centered search bar (max-w-150), dark secondary strip
+    [x] page.tsx — 3 sections: Trending / Best Deals / Featured
+    [x] /shop page + ShopFilters (URL-based category filtering)
+    [x] next.config.ts — allowedDevOrigins for LAN HMR
+    [x] All Tailwind v4 canonical classes (no arbitrary values)
+
+  DAY 3 — Backend API + Frontend Integration + Cart (Complete — April 25, 2026)
+  ------------------------------------------------------------------------------
+  BACKEND:
+    [x] Prisma schema — 5 models: User, Category, Product, Order, OrderItem
+    [x] DB migration: 20260424090142_init
+    [x] PrismaClient singleton (src/common/lib/prisma.ts)
+    [x] Product module: service + controller + routes + types
+    [x] GET /products — returns active products with category included
+    [x] GET /products/:id — returns single product with 404 handling
+    [x] Seed script: 4 categories + 10 products (upsert, idempotent)
+    [x] db:seed npm script + prisma.seed config in package.json
+
+  FRONTEND — API CONNECTION:
+    [x] services/product.service.ts — fetchProducts() with normalisation
+    [x] Prisma Decimal → Number normalisation (price field)
+    [x] Product type updated: id: number, stock, isActive, category: object
+    [x] ProductGrid converted to 'use client' — self-fetches via useEffect
+    [x] shop/page.tsx uses real API (fetchProducts with category filter)
+    [x] page.tsx simplified — no PLACEHOLDER_PRODUCTS, grids self-fetch
+    [x] PLACEHOLDER_PRODUCTS removed from constants (dead code)
+    [x] product.category.name used everywhere in ProductCard
+
+  FRONTEND — CART SYSTEM:
+    [x] Zustand 5 installed
+    [x] cart.store.ts — full store with persist middleware
+    [x] CartItem type: id, name, price, priceInPaise, imageUrl, quantity,
+                       stock (snapshot), isActive (snapshot)
+    [x] Actions: addToCart, removeFromCart, increaseQty, decreaseQty,
+                 clearCart, markItemInactive, updateItemStock
+    [x] Guards: inactive product blocked, zero-stock blocked, qty capped at stock
+    [x] decreaseQty removes item when qty would reach 0
+    [x] Selectors: selectCartTotal, selectCartCount, selectIsCartValid
+    [x] cartId UUID — generated on init, regenerated on clearCart
+    [x] Persist version: 1 with migration from v0 (adds priceInPaise, isActive, cartId)
+    [x] ProductCard wired: addToCart, 3-state button (idle/added/maxStock)
+    [x] Navbar: cart count badge (hydration-safe useEffect pattern), Link to /cart
+    [x] cart/page.tsx: mounted guard, qty controls, + button disabled at max stock,
+                       per-item OOS/inactive warnings, order summary, valid checkout gate
+    [x] react-hot-toast installed; providers.tsx client wrapper; Toaster in layout
+    [x] Toast on: add (success), max stock (error), remove (success)
+
+  DAY 4 — To Be Built
+  --------------------
+  BACKEND:
+    [ ] Auth module (JWT, refresh tokens, bcryptjs)
+    [ ] Extended product filtering (search, price range, pagination)
+    [ ] Product by slug endpoint
+    [ ] Categories endpoint
+    [ ] Orders module
+
+  FRONTEND:
+    [ ] Product detail page: /shop/[slug]
+    [ ] Auth pages: /login, /register
+    [ ] Checkout flow (address + order placement → clearCart)
+    [ ] User orders page /orders
+    [ ] Search (Navbar search bar wired, needs API)
+    [ ] Footer component
+    [ ] Connect cart to backend on login (use cartId for sync)
+
+  ADMIN:
+    [ ] Connect to real backend API (replace placeholder data)
+    [ ] Products CRUD (/products, /products/new, /products/[id]/edit)
+    [ ] Orders management
+    [ ] Users list
+
+================================================================================
+  14. PENDING / NEXT STEPS
+================================================================================
+
+  IMMEDIATE:
+    1. Commit current work to git
+       cd "vedic vessels"
+       git add .
+       git commit -m "feat: full cart system + API integration (Day 2–3)"
+
+    2. Add Footer component to frontend layout
+
+    3. Add product by slug: GET /products/:slug
+       (current endpoint uses numeric :id — needs slug support for /shop/[slug])
+
+  SHORT TERM (Day 4):
+    4. Build auth module (JWT + refresh tokens)
+    5. Product detail page /shop/[slug] in frontend
+    6. Checkout page — calls POST /orders, then clearCart()
+    7. Add category + search params to GET /products controller
+
+  MEDIUM TERM:
+    8. Backend Cart model (for logged-in user cart sync)
+       On login: merge localStorage cartId items → backend cart
+    9. Product image upload (multer + local or S3)
+    10. Add mrp / discount fields to Product schema (for strikethrough pricing)
+    11. Connect admin dashboard to real data
+
+  KNOWN LIMITATIONS (current state):
+    - All 3 homepage ProductGrids (Trending / Best Deals / Featured) fetch the
+      same endpoint with no sort params — they show identical product sets.
+      Fix: add sortBy param to GET /products once products have rating/reviewCount
+    - product.imageUrl is null for all seeded products (emoji placeholder shows)
+    - CartItem.isActive/stock are snapshots — no real-time sync with backend
+      updateItemStock() and markItemInactive() are available but not yet called
+      automatically on product re-fetch
+    - Checkout button is wired up visually but does nothing yet (no orders API)
+
+  OPTIONAL / POLISH:
+    - Root-level concurrently script for one-command dev start
+    - Prettier + ESLint across all three apps
+    - Docker Compose for MySQL
+    - Wishlist / Favorites
+    - Marquee animation on DealStrip (mobile)
+    - Real product images (replace emoji placeholders)
+
+================================================================================
+  QUICK COMMAND REFERENCE
+================================================================================
+
+  Kill port 5000:    lsof -ti :5000 | xargs kill
+  Kill port 3000:    lsof -ti :3000 | xargs kill
+  Kill port 3001:    lsof -ti :3001 | xargs kill
+
+  Clear Next.js cache:
+    rm -rf frontend/.next
+    rm -rf admin/.next
+
+  TypeScript check:
+    cd backend  && npx tsc --noEmit
+    cd frontend && npx tsc --noEmit
+    cd admin    && npx tsc --noEmit
+
+  Prisma:
+    cd backend
+    npm run prisma:generate   ← after schema changes
+    npm run prisma:migrate    ← apply migrations
+    npm run prisma:studio     ← visual DB browser at :5555
+    npm run db:seed           ← seed categories + products
+
+  Git:
+    git log --oneline
+    git show HEAD:path/to/file
+    git diff HEAD frontend/src/
+    git status
+
+================================================================================
+  END OF DOCUMENTATION
+================================================================================

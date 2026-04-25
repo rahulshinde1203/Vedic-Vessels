@@ -1,12 +1,8 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
+import { config } from './common/config/env';
 import app from './app';
 
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`[server] Running on http://localhost:${PORT}`);
-  console.log(`[server] Health → http://localhost:${PORT}/api/v1/health`);
-  console.log(`[server] ENV    → ${process.env.NODE_ENV || 'development'}`);
+app.listen(config.port, () => {
+  console.log(`[server] Running on http://localhost:${config.port}`);
+  console.log(`[server] Health → http://localhost:${config.port}/api/v1/health`);
+  console.log(`[server] ENV    → ${config.nodeEnv}`);
 });

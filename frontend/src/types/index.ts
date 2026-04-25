@@ -1,12 +1,17 @@
 export interface Product {
-  id: string;
+  id: number;
   name: string;
-  slug: string;
-  price: number;
-  category: string;
+  slug?: string;
   description?: string;
-  imageUrl?: string;
-  inStock: boolean;
+  price: number;
+  mrp?: number;
+  discount?: number;
+  stock: number;
+  imageUrl?: string | null;
+  isActive: boolean;
+  category: { id: number; name: string };
+  rating?: number;
+  reviewCount?: number;
 }
 
 export interface Category {
@@ -24,10 +29,16 @@ export interface User {
   role: 'USER' | 'ADMIN';
 }
 
+// Flat shape stored in the cart (no nested Product to avoid staleness)
 export interface CartItem {
-  id: string;
-  product: Product;
+  id: number;
+  name: string;
+  price: number;
+  priceInPaise: number;   // Math.round(price * 100) — integer paise for payment APIs
+  imageUrl?: string | null;
   quantity: number;
+  stock: number;          // snapshot; updated by updateItemStock()
+  isActive: boolean;      // snapshot; updated by markItemInactive()
 }
 
 export interface ApiResponse<T> {
